@@ -5,9 +5,11 @@
 
 #include "command.h"
 
+extern int (bip32_command)(int,char**);
 extern int (bip39_command)(int,char**);
 
 static command_t commands[] = {
+    { "bip32", bip32_command },
     { "bip39", bip39_command },
     { NULL, NULL, }
 };
@@ -19,6 +21,7 @@ static void usage()
     fputs("\n", stderr);
     fputs("These are the BiTCoin Tools (btct) modules used in various situations:\n", stderr);
     fputs("\n", stderr);
+    fputs("  bip32        Hierarchical Deterministic Wallets\n", stderr);
     fputs("  bip39        Mnemonic code for generating deterministic keys\n", stderr);
     fputs("\n", stderr);
 }

@@ -1,0 +1,3 @@
+[submodule "external/libbase58"]
+	path = external/libbase58
+	url = git@github.com:bitcoin/libbase58.git
