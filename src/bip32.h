@@ -17,5 +17,6 @@ typedef struct bip32_key_t {
 int bip32_key_init_from_entropy(bip32_key_t *bip32_key_ctx, uint8_t *entropy, size_t size);
 int bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
                               uint8_t *result, size_t *size);
+int bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size);
 
 #endif

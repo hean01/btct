@@ -7,7 +7,7 @@
 #include "bip32.h"
 
 static int
-_bip32_master_key(bool encode)
+_bip32_master_key(bool encode, bool wif)
 {
     uint8_t seed[128]={0};
     size_t bytes = 0;
@@ -24,12 +24,20 @@ _bip32_master_key(bool encode)
 
     bip32_key_t ctx;
     bip32_key_init_from_entropy(&ctx, seed, bytes);
-    bip32_key_to_extended_key(&ctx, true, encode, (uint8_t*)buffer, &size);
 
     freopen(NULL, "wb", stdout);
-    fwrite(buffer, 1, size, stdout);
-    if (encode)
-        fputs("\n", stdout);
+    if (!wif)
+    {
+        bip32_key_to_extended_key(&ctx, true, encode, (uint8_t*)buffer, &size);
+        fwrite(buffer, 1, size, stdout);
+        if (encode)
+            fputs("\n", stdout);
+    }
+    else
+    {
+        bip32_key_to_wif(&ctx, (uint8_t*)buffer, &size);
+        fwrite(buffer, 1, size, stdout);
+    }
 
     return EXIT_SUCCESS;
 }
@@ -40,6 +48,7 @@ _bip32_master_key_usage()
     fputs("usage: btct bip32.masterkey <args>\n", stderr);
     fputs("\n", stderr);
     fputs("  -p, --plain          Do not perform base58 encoding of key\n", stderr);
+    fputs("  -w, --wif            Wallet import format\n", stderr);
     fputs("\n", stderr);
     fputs("examples:\n", stderr);
     fputs("\n", stderr);
@@ -56,16 +65,18 @@ _bip32_master_key_command(int argc, char **argv)
 {
     int c;
     bool encode = true;
+    bool wif = false;
     while (1)
     {
         int option_index = 0;
         static struct option long_options[] = {
             {"help",  no_argument, 0, 'h' },
             {"plain",  no_argument, 0, 'p' },
+            {"wif",  no_argument, 0, 'w' },
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "h", long_options, &option_index);
+        c = getopt_long(argc, argv, "hpw", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -77,10 +88,14 @@ _bip32_master_key_command(int argc, char **argv)
             case 'p':
                 encode = false;
                 break;
+
+            case 'w':
+                wif = true;
+                break;
         }
     }
 
-    return _bip32_master_key(encode);
+    return _bip32_master_key(encode, wif);
 }
 
 

@@ -112,3 +112,22 @@ bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
     
     return 0;
 }
+
+int
+bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size)
+{
+    uint8_t buf[512] = { 0 };
+
+    if (ctx->public)
+        return 1;
+
+    uint8_t *ptr = buf;
+    *ptr = 0x80;
+    ptr++;
+    memcpy(ptr, ctx->key, 32);
+    ptr += 32;
+    *ptr = 0x01;
+    ptr++;
+
+    return _base58_checksum_encode(buf, ptr - buf, result, size);
+}
