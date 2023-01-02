@@ -5,12 +5,17 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-typedef struct bip32_t {
-    bool testnet;
-} bip32_t;
+typedef struct bip32_key_t {
+    bool public;
+    uint8_t key[32];
+    uint8_t chain[32];
+    uint8_t parent_fingerprint[4];
+    uint8_t depth;
+    uint8_t index[4];
+} bip32_key_t;
 
-int bip32_init(bip32_t *ctx, bool testnet);
-int bip32_master_key_from_seed(bip32_t *ctx, uint8_t *seed, size_t seed_size,
-                               char *result, size_t *size);
+int bip32_key_init_from_entropy(bip32_key_t *bip32_key_ctx, uint8_t *entropy, size_t size);
+int bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
+                              uint8_t *result, size_t *size);
 
 #endif

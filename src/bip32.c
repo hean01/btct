@@ -6,71 +6,105 @@
 #include "../external/libbase58/libbase58.h"
 #include "bip32.h"
 
-int
-bip32_init(bip32_t *ctx, bool testnet)
+static int
+_bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
+                uint8_t depth, uint8_t *index,
+                uint8_t *fingerprint, bool public)
 {
-    memset(ctx, 0, sizeof(bip32_t));
-    ctx->testnet = testnet;
+    memset(ctx, 0, sizeof(bip32_key_t));
+
+    ctx->public = public;
+    memcpy(ctx->key, secret, 32);
+    memcpy(ctx->chain, chain, 32);
+    ctx->depth = depth;
+    memcpy(ctx->index, index, 4);
+    memcpy(ctx->parent_fingerprint, fingerprint, 4);
+    
     return 0;
 }
 
 int
-bip32_master_key_from_seed(bip32_t *ctx, uint8_t *seed, size_t seed_size,
-                           char *result, size_t *size)
+bip32_key_init_from_entropy(bip32_key_t *ctx, uint8_t *entropy, size_t size)
 {
     char *key = "Bitcoin seed";
     struct hmac_sha512_ctx hmac_sha512;
 
-    if (seed_size != 64)
+    if (size != 64)
         return -1;
 
     uint8_t mac[64];
     hmac_sha512_set_key(&hmac_sha512, strlen(key), (uint8_t *)key);
-    hmac_sha512_update(&hmac_sha512, seed_size, seed);
+    hmac_sha512_update(&hmac_sha512, size, entropy);
     hmac_sha512_digest(&hmac_sha512, 64, mac);
 
-    uint8_t xprv[512] = { 0 };
-    uint8_t mainnet_private_magic[4] = { 0x04, 0x88, 0xad, 0xe4 };
-    uint8_t testnet_private_magic[4] = { 0x04, 0x35, 0x83, 0x94 };
+    uint8_t *privkey = mac;
+    uint8_t *chain = mac + 32;
+    uint8_t fingerprint[] = { 0, 0, 0, 0 };
+    uint8_t child[] = { 0, 0, 0, 0 };
+    
+    return _bip32_key_init(ctx, privkey, chain, 0, child, fingerprint, false);
+}
 
-    uint8_t *ptr = xprv;
+int
+bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
+                          uint8_t *result, size_t *size)
+{
+    uint8_t buf[512] = { 0 };
+    uint8_t version_private[4] = { 0x04, 0x88, 0xad, 0xe4 };
+    uint8_t version_public[4] = { 0x04, 0x88, 0xb2, 0x1e };
 
-    // Write magic
-    if (ctx->testnet)
-        memcpy(ptr, testnet_private_magic, sizeof(testnet_private_magic));
-    else
-        memcpy(ptr, mainnet_private_magic, sizeof(mainnet_private_magic));
-    ptr+=4;
+    if (ctx->public && private)
+        return -1;
 
-    // Depth
+    uint8_t *ptr = buf;
+    memcpy(ptr, private ? version_private : version_public, 4);
+    ptr += 4;
+
+    *ptr = ctx->depth;
     ptr++;
 
-    // Parent fingerprint
+    memcpy(ptr, ctx->parent_fingerprint, 4);
     ptr += 4;
 
-    // Child
+    memcpy(ptr, ctx->index, 4);
     ptr += 4;
-
-    // Chain code 256bit
-    memcpy(ptr, mac + 32, 32);
+    
+    memcpy(ptr, ctx->chain, 32);
     ptr += 32;
 
-    // Private key 256bit
-    memcpy(ptr + 1, mac, 32);
-    ptr += 33;
+    if (private)
+    {
+        *ptr = 0x00;
+        memcpy(ptr+1, ctx->key, 32);
+        ptr += 33;
+    }
+    else
+    {
+        // !!! FIXME !!!
+    }
 
-    // calculate double hash of xprv
-    uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
-    struct sha256_ctx sha256;
-    sha256_init(&sha256);
-    sha256_update(&sha256, (ptr - xprv), xprv);
-    sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-    sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-    sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+    if (!encoded)
+    {
+        memcpy(result, buf, ptr-buf);
+        *size = ptr-buf;
+        return 0;
+    }
+    else
+    {
+        // calculate double hash of xprv
+        uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
+        struct sha256_ctx sha256;
+        sha256_init(&sha256);
+        sha256_update(&sha256, (ptr - buf), buf);
+        sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+        sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+        sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
     
-    // append 4 bytes checksum
-    memcpy(ptr, hashed_xprv, 4);
-    ptr+=4;
-
-    return b58enc(result, size, xprv, ptr - xprv) ? 0 : -1;
+        // append 4 bytes checksum
+        memcpy(ptr, hashed_xprv, 4);
+        ptr += 4;
+        return b58enc((char*)result, size, buf, ptr - buf) ? 0 : -1;
+    }
+    
+    return 0;
 }

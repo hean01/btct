@@ -7,7 +7,7 @@
 #include "bip32.h"
 
 static int
-_bip32_master_key(bool testnet)
+_bip32_master_key(bool encode)
 {
     uint8_t seed[128]={0};
     size_t bytes = 0;
@@ -21,12 +21,15 @@ _bip32_master_key(bool testnet)
 
     char buffer[4096];
     size_t size = sizeof(buffer);
-    bip32_t ctx;
-    bip32_init(&ctx, testnet);
-    bip32_master_key_from_seed(&ctx, seed, bytes, buffer, &size);
-    fputs(buffer, stdout);
+
+    bip32_key_t ctx;
+    bip32_key_init_from_entropy(&ctx, seed, bytes);
+    bip32_key_to_extended_key(&ctx, true, encode, (uint8_t*)buffer, &size);
+
+    freopen(NULL, "wb", stdout);
+    fwrite(buffer, 1, size, stdout);
     fputs("\n", stdout);
-    
+
     return EXIT_SUCCESS;
 }
 
@@ -35,7 +38,7 @@ _bip32_master_key_usage()
 {
     fputs("usage: btct bip32.masterkey <args>\n", stderr);
     fputs("\n", stderr);
-    fputs("  -t, --test          Create master key for testnet instead of the default main bitcoin network\n", stderr);
+    fputs("  -p, --plain          Do not perform base58 encoding of key\n", stderr);
     fputs("\n", stderr);
     fputs("examples:\n", stderr);
     fputs("\n", stderr);
@@ -51,13 +54,13 @@ static int
 _bip32_master_key_command(int argc, char **argv)
 {
     int c;
-    bool test = false;
+    bool encode = true;
     while (1)
     {
         int option_index = 0;
         static struct option long_options[] = {
             {"help",  no_argument, 0, 'h' },
-            {"test",  no_argument, 0, 't' },
+            {"plain",  no_argument, 0, 'p' },
             {0, 0, 0, 0}
         };
 
@@ -70,13 +73,13 @@ _bip32_master_key_command(int argc, char **argv)
                 _bip32_master_key_usage();
                 return EXIT_FAILURE;
 
-            case 't':
-                test = true;
+            case 'p':
+                encode = false;
                 break;
         }
     }
 
-    return _bip32_master_key(test);
+    return _bip32_master_key(encode);
 }
 
 
