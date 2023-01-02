@@ -86,7 +86,7 @@ _bip32_master_key_command(int argc, char **argv)
 
 static void _bip32_command_usage()
 {
-    fputs("usage: btct bip39.<command> <args>\n", stderr);
+    fputs("usage: btct bip32.<command> <args>\n", stderr);
     fputs("\n", stderr);
     fputs("  master_key       Generate hierarchical deterministic master key\n", stderr);
     fputs("\n",stderr);
