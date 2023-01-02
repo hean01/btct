@@ -28,7 +28,8 @@ _bip32_master_key(bool encode)
 
     freopen(NULL, "wb", stdout);
     fwrite(buffer, 1, size, stdout);
-    fputs("\n", stdout);
+    if (encode)
+        fputs("\n", stdout);
 
     return EXIT_SUCCESS;
 }
