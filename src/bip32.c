@@ -45,6 +45,22 @@ bip32_key_init_from_entropy(bip32_key_t *ctx, uint8_t *entropy, size_t size)
     return _bip32_key_init(ctx, privkey, chain, 0, child, fingerprint, false);
 }
 
+static inline int
+_base58_checksum_encode(uint8_t *data, size_t size,
+                        uint8_t *result, size_t *result_size)
+{
+    uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
+    struct sha256_ctx sha256;
+    sha256_init(&sha256);
+    sha256_update(&sha256, size, data);
+    sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+    sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+    sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+
+    memcpy(data + size, hashed_xprv, 4);
+    return b58enc((char*)result, result_size, data, size + 4) ? 0 : -1;
+}
+
 int
 bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
                           uint8_t *result, size_t *size)
@@ -91,19 +107,7 @@ bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
     }
     else
     {
-        // calculate double hash of xprv
-        uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
-        struct sha256_ctx sha256;
-        sha256_init(&sha256);
-        sha256_update(&sha256, (ptr - buf), buf);
-        sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-        sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-        sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-    
-        // append 4 bytes checksum
-        memcpy(ptr, hashed_xprv, 4);
-        ptr += 4;
-        return b58enc((char*)result, size, buf, ptr - buf) ? 0 : -1;
+        return _base58_checksum_encode(buf, ptr - buf, result, size);
     }
     
     return 0;
