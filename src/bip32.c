@@ -8,7 +8,7 @@
 
 static int
 _bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
-                uint8_t depth, uint8_t *index,
+                uint8_t depth, uint32_t index,
                 uint8_t *fingerprint, bool public)
 {
     memset(ctx, 0, sizeof(bip32_key_t));
@@ -17,7 +17,7 @@ _bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
     memcpy(ctx->key, secret, 32);
     memcpy(ctx->chain, chain, 32);
     ctx->depth = depth;
-    memcpy(ctx->index, index, 4);
+    ctx->index = index;
     memcpy(ctx->parent_fingerprint, fingerprint, 4);
     
     return 0;
@@ -40,9 +40,9 @@ bip32_key_init_from_entropy(bip32_key_t *ctx, uint8_t *entropy, size_t size)
     uint8_t *privkey = mac;
     uint8_t *chain = mac + 32;
     uint8_t fingerprint[] = { 0, 0, 0, 0 };
-    uint8_t child[] = { 0, 0, 0, 0 };
+    uint32_t index = 0x00;
     
-    return _bip32_key_init(ctx, privkey, chain, 0, child, fingerprint, false);
+    return _bip32_key_init(ctx, privkey, chain, 0, index, fingerprint, false);
 }
 
 static inline int
@@ -82,7 +82,7 @@ bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
     memcpy(ptr, ctx->parent_fingerprint, 4);
     ptr += 4;
 
-    memcpy(ptr, ctx->index, 4);
+    memcpy(ptr, &ctx->index, 4);
     ptr += 4;
     
     memcpy(ptr, ctx->chain, 32);

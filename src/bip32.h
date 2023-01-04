@@ -11,7 +11,7 @@ typedef struct bip32_key_t {
     uint8_t chain[32];
     uint8_t parent_fingerprint[4];
     uint8_t depth;
-    uint8_t index[4];
+    uint32_t index;
 } bip32_key_t;
 
 int bip32_key_init_from_entropy(bip32_key_t *bip32_key_ctx, uint8_t *entropy, size_t size);
