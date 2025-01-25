@@ -97,7 +97,7 @@ _bip39_mnemonics_command(int argc, char **argv)
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "h", long_options, &option_index);
+        c = getopt_long(argc, argv, "hs", long_options, &option_index);
         if (c == -1)
             break;
 
