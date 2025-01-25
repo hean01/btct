@@ -9,10 +9,12 @@ sources = [
   'bip32_command.c',
   'bip39_command.c',
   'bip39.c',
+  'sss_command.c',
   'btct.c',
 ]
 
 executable('btct', sources,
            dependencies: [ nettle ],
-           link_with: libbase58_static,
+           link_with: [libbase58_static, sss_static],
+           include_directories: [sss_incdir],
            install: true)

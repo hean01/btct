@@ -7,22 +7,34 @@
 
 extern int (bip32_command)(int,char**);
 extern int (bip39_command)(int,char**);
+extern int (sss_command)(int,char**);
 
 static command_t commands[] = {
     { "bip32", bip32_command },
     { "bip39", bip39_command },
+    { "sss", sss_command },
     { NULL, NULL, }
 };
 
 static void usage()
 {
     fputs("usage: btct [-v | --version] [-h | --help]\n", stderr);
-    fputs("               <module>.<command> [<args>]\n", stderr);
+    fputs("               <module>[.<command>] [<args>]\n", stderr);
     fputs("\n", stderr);
-    fputs("These are the BiTCoin Tools (btct) modules used in various situations:\n", stderr);
+    fputs("These are the BiTCoin Tools (btct) modules used for various operation:\n", stderr);
     fputs("\n", stderr);
     fputs("  bip32        Hierarchical Deterministic Wallets\n", stderr);
+    fputs("\n", stderr);
     fputs("  bip39        Mnemonic code for generating deterministic keys\n", stderr);
+    fputs("\n", stderr);
+    fputs("  sss          Shamir Secret Sharing is used to secure a secret in a distributed form,\n"
+          "               most often to secure encryption keys. The secret is split into multiple\n"
+          "               shares, which individually do not give any information about the secret.", stderr);
+    fputs("\n\n", stderr);
+    fputs("To get more information of each module, name the module and add the --help argument to the btct\n"
+          "commandline, for example if you want to know more about bip32 module run like:\n", stderr);
+    fputs("\n", stderr);
+    fputs("    btct bip32 --help\n", stderr);
     fputs("\n", stderr);
 }
 
