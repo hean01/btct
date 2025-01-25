@@ -22,18 +22,18 @@ static int _bip39_to_mnemonics(_mnemonics_format_t format)
     while (fread(seed + bytes, 1, 1, stdin))
         bytes++;
 
-    fprintf(stderr,"read %ld bits of entrophy seed from stdin\n", bytes*8);
+    fprintf(stderr, "bip39.mnemonics: read %ld bits of entrophy seed from stdin\n", bytes*8);
 
     bip39_t ctx;
     if (bip39_init(&ctx) != 0) {
-        fprintf(stderr, "failed to initialize bip39 context\n");
+        fprintf(stderr, "bip39.mnemonics: failed to initialize bip39 context\n");
         return EXIT_FAILURE;
     }
 
     char **words = NULL;
     size_t word_count = 0;
     if (bip39_to_mnemonics(&ctx, seed, bytes*8, &words, &word_count) != 0) {
-        fprintf(stderr, "failed to generate mnemonics from seed\n");
+        fprintf(stderr, "bip39.mnemonics: failed to generate mnemonics from seed\n");
         return EXIT_FAILURE;
     }
 
@@ -134,12 +134,12 @@ static int _bip39_to_seed(int iterations, const char *passphrase)
 
     bip39_t ctx;
     if (bip39_init(&ctx) != 0) {
-        fprintf(stderr, "failed to initialize bip39 context\n");
+        fprintf(stderr, "bip39.seed: failed to initialize bip39 context\n");
         return EXIT_FAILURE;
     }
 
     if (bip39_to_seed(&ctx, mnemonics, bytes, iterations, (uint8_t*)passphrase, seed) != 0) {
-        fprintf(stderr, "failed to generate seed from mnenomics\n");
+        fprintf(stderr, "bip39.seed: failed to generate seed from mnenomics\n");
         return EXIT_FAILURE;
     }
 

@@ -17,7 +17,7 @@ _bip32_master_key(bool encode, bool wif)
     while (fread(seed + bytes, 1, 1, stdin))
         bytes++;
 
-    fprintf(stderr,"read %ld bits of seed from stdin to use for creating hierarchical deterministic master key\n", bytes*8);
+    fprintf(stderr,"bip39.masterkey: read %ld bits of seed from stdin to use for creating hierarchical deterministic master key\n", bytes*8);
 
     char buffer[4096];
     size_t size = sizeof(buffer);
