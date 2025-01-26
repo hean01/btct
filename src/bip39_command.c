@@ -62,7 +62,7 @@ static int _bip39_to_mnemonics(_mnemonics_format_t format)
 }
 
 static void
-_bip39_mnemonics_command_usage()
+_bip39_mnemonics_command_usage(void)
 {
     fputs("usage: btct bip39.mnemonics <args>\n", stderr);
     fputs("\n", stderr);
@@ -151,7 +151,7 @@ static int _bip39_to_seed(int iterations, const char *passphrase)
 }
 
 static void
-_bip39_seed_command_usage()
+_bip39_seed_command_usage(void)
 {
     fputs("usage: btct bip39.seed <args>\n", stderr);
     fputs("\n", stderr);
@@ -205,7 +205,7 @@ _bip39_seed_command(int argc, char **argv)
     return _bip39_to_seed(iterations, passphrase);
 }
 
-static void _bip39_command_usage()
+static void _bip39_command_usage(void)
 {
     fputs("usage: btct bip39.<command> <args>\n", stderr);
     fputs("\n", stderr);

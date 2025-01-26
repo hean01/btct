@@ -48,7 +48,7 @@ _sss_create(uint8_t share_cnt, uint8_t threshold)
 }
 
 static void
-_sss_create_usage()
+_sss_create_usage(void)
 {
   fputs("usage: btct sss.create <args>\n", stderr);
   fputs("\n", stderr);
@@ -69,7 +69,7 @@ _sss_create_usage()
 }
 
 static int
-_sss_recover()
+_sss_recover(void)
 {
   uint8_t out[sss_MLEN];
   char *buf[256] = {NULL};
@@ -108,7 +108,7 @@ _sss_recover()
 }
 
 static void
-_sss_recover_usage()
+_sss_recover_usage(void)
 {
   fputs("usage: btct sss.recover <args>\n", stderr);
   fputs("\n", stderr);
@@ -186,7 +186,7 @@ _sss_recover_command(int argc, char **argv) {
   return _sss_recover();
 }
 
-static void _sss_command_usage()
+static void _sss_command_usage(void)
 {
   fputs("usage: btct sss.<command> <args>\n", stderr);
   fputs("\n", stderr);

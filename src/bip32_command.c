@@ -43,7 +43,7 @@ _bip32_master_key(bool encode, bool wif)
 }
 
 static void
-_bip32_master_key_usage()
+_bip32_master_key_usage(void)
 {
     fputs("usage: btct bip32.masterkey <args>\n", stderr);
     fputs("\n", stderr);
@@ -99,7 +99,7 @@ _bip32_master_key_command(int argc, char **argv)
 }
 
 
-static void _bip32_command_usage()
+static void _bip32_command_usage(void)
 {
     fputs("usage: btct bip32.<command> <args>\n", stderr);
     fputs("\n", stderr);

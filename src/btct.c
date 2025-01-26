@@ -16,7 +16,7 @@ static command_t commands[] = {
     { NULL, NULL, }
 };
 
-static void usage()
+static void usage(void)
 {
     fputs("usage: btct [-v | --version] [-h | --help]\n", stderr);
     fputs("               <module>[.<command>] [<args>]\n", stderr);
@@ -38,7 +38,7 @@ static void usage()
     fputs("\n", stderr);
 }
 
-static void version()
+static void version(void)
 {
     fputs("bct v1.0.0\n", stderr);
 }
