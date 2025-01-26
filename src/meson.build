@@ -10,11 +10,13 @@ sources = [
   'bip39_command.c',
   'bip39.c',
   'sss_command.c',
-  'btct.c',
 ]
 
-executable('btct', sources,
+libbtct_static = static_library('btct', sources,
+	    link_with: [libbase58_static, sss_static],
+	    include_directories: [sss_incdir])
+
+executable('btct', 'btct.c',
            dependencies: [ nettle ],
-           link_with: [libbase58_static, sss_static],
-           include_directories: [sss_incdir],
+           link_with: [libbtct_static],
            install: true)

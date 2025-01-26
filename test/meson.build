@@ -1,3 +1,4 @@
-bip39_test = executable('bip39_test', 'bip39.c')
 
-test('bip39', bip39_test)
+bip39_spec = executable('bip39_spec', 'bip39_spec.c', dependencies: [ nettle ], link_with: [libbtct_static])
+
+test('bip39_spec', bip39_spec)
