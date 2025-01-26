@@ -22,7 +22,7 @@ _read_11bit_value_at_bit_index(uint8_t *seed, size_t bit_index) {
     return value;
 }
 
-int bip39_to_mnemonics(bip39_t *ctx, uint8_t *seed, size_t bits,
+int bip39_to_mnemonics(bip39_t *ctx, uint8_t *entropy, size_t bits,
                        char ***mnemonics, size_t *mnemonic_count)
 {
     uint8_t bytes = bits / 8;
@@ -33,8 +33,11 @@ int bip39_to_mnemonics(bip39_t *ctx, uint8_t *seed, size_t bits,
 
     uint8_t digest[4] = {0};
     sha256_init(&ctx->sha256);
-    sha256_update(&ctx->sha256, bytes, seed);
+    sha256_update(&ctx->sha256, bytes, entropy);
     sha256_digest(&ctx->sha256, 4, digest);
+
+    uint8_t *seed=malloc(bytes+2);
+    memcpy(seed, entropy, bytes);
     seed[bytes] = digest[0];
     seed[bytes + 1] = digest[1];
 
@@ -46,6 +49,7 @@ int bip39_to_mnemonics(bip39_t *ctx, uint8_t *seed, size_t bits,
         bit_index += 11;
     }
 
+    free(seed);
     return 0;
 }
 
