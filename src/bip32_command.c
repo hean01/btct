@@ -28,7 +28,7 @@ _bip32_master_key(bool encode, bool wif)
     freopen(NULL, "wb", stdout);
     if (!wif)
     {
-        bip32_key_to_extended_key(&ctx, true, encode, (uint8_t*)buffer, &size);
+        bip32_key_serialize(&ctx, true, encode, (uint8_t*)buffer, &size);
         fwrite(buffer, 1, size, stdout);
         if (encode)
             fputs("\n", stdout);

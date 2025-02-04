@@ -44,10 +44,10 @@ spec("bip32") {
     }
 
 
-    describe("when extending bip32 root key") {
+    describe("when serializing bip32 root key") {
       char buffer[1024];
       size_t size = sizeof(buffer);
-      bip32_key_to_extended_key(&key, true, true, (uint8_t*)buffer, &size);
+      bip32_key_serialize(&key, true, true, (uint8_t*)buffer, &size);
       it("should return the correct xprv* string")
 	check_str(buffer, vectors[0].masterkey);
     }

@@ -62,8 +62,8 @@ _base58_checksum_encode(uint8_t *data, size_t size,
 }
 
 int
-bip32_key_to_extended_key(bip32_key_t *ctx, bool private, bool encoded,
-                          uint8_t *result, size_t *size)
+bip32_key_serialize(bip32_key_t *ctx, bool private, bool encoded,
+		    uint8_t *result, size_t *size)
 {
     uint8_t buf[512] = { 0 };
     uint8_t version_private[4] = { 0x04, 0x88, 0xad, 0xe4 };
