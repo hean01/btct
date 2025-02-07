@@ -113,6 +113,80 @@ bip32_key_serialize(bip32_key_t *ctx, bool private, bool encoded,
     return 0;
 }
 
+static inline int
+_base58_checksum_decode(const char *data, size_t size,
+                       uint8_t *result, size_t *result_size)
+{
+  uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
+  struct sha256_ctx sha256;
+  uint8_t checksum[4];
+
+  if (b58tobin(result, result_size, data, size) == false)
+    return -1;
+
+  memcpy(checksum, result + (*result_size - 4), 4);
+  *result_size -= 4;
+
+  sha256_init(&sha256);
+  sha256_update(&sha256, *result_size, result);
+  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+  sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+
+  if (memcmp(checksum, hashed_xprv, 4) != 0)
+    return -2;
+
+  return 0;
+}
+
+int
+bip32_key_deserialize(bip32_key_t *key, const char *encoded_key)
+{
+  uint8_t buf[4 + 1 + 4 + 4 + 32 + 1 + 32 + 4] = { 0 };
+  size_t buf_size = sizeof(buf);
+  uint8_t *pbuf = buf;
+
+  uint8_t version_private[4] = { 0x04, 0x88, 0xad, 0xe4 };
+  uint8_t version_public[4] = { 0x04, 0x88, 0xb2, 0x1e };
+
+  if (_base58_checksum_decode(encoded_key, strlen(encoded_key), buf, &buf_size) != 0)
+    return -1;
+
+  memset(key, 0, sizeof(bip32_key_t));
+
+  // verify key version
+  if (memcmp(version_public, pbuf, 4) == 0)
+    key->public = true;
+  else if (memcmp(version_private, pbuf, 4) == 0)
+    key->public = false;
+  else return -2;
+  pbuf += 4;
+
+  // get depth
+  key->depth = *pbuf;
+  pbuf++;
+
+  // get parent key fingerprint
+  memcpy(key->parent_fingerprint, pbuf, 4);
+  pbuf += 4;
+
+  // get index
+  memcpy((uint8_t *)&key->index, pbuf, 4);
+  pbuf += 4;
+
+  // get chain
+  memcpy(key->chain, pbuf, 32);
+  pbuf += 32;
+
+  // if private key, skip over 0x00 byte padding
+  if (!key->public)
+    pbuf++;
+
+  // get key from buf
+  memcpy(key->key, pbuf, 32);
+  return 0;
+}
+
 int
 bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size)
 {

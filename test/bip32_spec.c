@@ -50,6 +50,23 @@ spec("bip32") {
       bip32_key_serialize(&key, true, true, (uint8_t*)buffer, &size);
       it("should return the correct xprv* string")
 	check_str(buffer, vectors[0].masterkey);
+
+      describe("and deserialize result") {
+        bip32_key_t deserialized_key;
+        int result = bip32_key_deserialize(&deserialized_key, buffer);
+        it ("should create same key")
+          check(memcmp(&key, &deserialized_key, sizeof(bip32_key_t)) == 0);
+      }
+    }
+
+    describe("when deserializing bip32 root key") {
+      bip32_key_t deserialized_key;
+      int result = bip32_key_deserialize(&deserialized_key, vectors[0].masterkey);
+      it("should not fail deserialize")
+        check_number(result, 0);
+
+      it("should deserialize to a private key")
+        check(deserialized_key.public == false);
     }
   }
 }
