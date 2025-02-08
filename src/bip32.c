@@ -82,7 +82,7 @@ bip32_key_serialize(bip32_key_t *ctx, bool private, bool encoded,
     memcpy(ptr, ctx->parent_fingerprint, 4);
     ptr += 4;
 
-    memcpy(ptr, &ctx->index, 4);
+    utils_out_u32_be(ptr, ctx->index);
     ptr += 4;
     
     memcpy(ptr, ctx->chain, 32);
