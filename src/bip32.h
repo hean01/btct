@@ -15,7 +15,7 @@ typedef struct bip32_key_t {
 } bip32_key_t;
 
 int bip32_key_init_from_entropy(bip32_key_t *bip32_key_ctx, uint8_t *entropy, size_t size);
-int bip32_key_serialize(bip32_key_t *ctx, bool private, bool encoded,
+int bip32_key_serialize(bip32_key_t *ctx, bool encoded,
 			uint8_t *result, size_t *size);
 int bip32_key_deserialize(bip32_key_t *ctx, const char *encoded_key);
 int bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size);

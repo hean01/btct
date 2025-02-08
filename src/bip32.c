@@ -62,18 +62,15 @@ _base58_checksum_encode(uint8_t *data, size_t size,
 }
 
 int
-bip32_key_serialize(bip32_key_t *ctx, bool private, bool encoded,
+bip32_key_serialize(bip32_key_t *ctx, bool encoded,
 		    uint8_t *result, size_t *size)
 {
     uint8_t buf[512] = { 0 };
     uint8_t version_private[4] = { 0x04, 0x88, 0xad, 0xe4 };
     uint8_t version_public[4] = { 0x04, 0x88, 0xb2, 0x1e };
 
-    if (ctx->public && private)
-        return -1;
-
     uint8_t *ptr = buf;
-    memcpy(ptr, private ? version_private : version_public, 4);
+    memcpy(ptr, ctx->public ? version_public : version_private, 4);
     ptr += 4;
 
     *ptr = ctx->depth;
@@ -88,7 +85,7 @@ bip32_key_serialize(bip32_key_t *ctx, bool private, bool encoded,
     memcpy(ptr, ctx->chain, 32);
     ptr += 32;
 
-    if (private)
+    if (ctx->public == false)
     {
         *ptr = 0x00;
         memcpy(ptr+1, ctx->key, 32);
