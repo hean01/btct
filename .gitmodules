@@ -3,4 +3,4 @@
 	url = git@github.com:bitcoin/libbase58.git
 [submodule "external/sss"]
 	path = external/sss
-	url = https://github.com/dsprenkels/sss.git
+	url = git@github.com:dsprenkels/sss.git
