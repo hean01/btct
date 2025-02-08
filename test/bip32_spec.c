@@ -53,7 +53,7 @@ spec("bip32") {
 
       describe("and deserialize result") {
         bip32_key_t deserialized_key;
-        int result = bip32_key_deserialize(&deserialized_key, buffer);
+        bip32_key_deserialize(&deserialized_key, buffer);
         it ("should create same key")
           check(memcmp(&key, &deserialized_key, sizeof(bip32_key_t)) == 0);
       }
