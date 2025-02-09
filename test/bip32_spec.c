@@ -6,9 +6,10 @@
 #define check_number(got, expected) check(got == expected, "expected '%d' got '%d'", expected, got)
 
 spec("bip32") {
-  static bip32_key_t key;
 
   context("given initializing key from entropy") {
+    static bip32_key_t key;
+
     before_each() {
     }
 
@@ -38,37 +39,43 @@ spec("bip32") {
 
   }
 
-  context("Given initialized key from know seed") {
+  context("given initialized master key from know seed") {
+    static bip32_key_t key;
+    static int result;
     before_each() {
-      bip32_key_init_from_entropy(&key, vectors[0].seed, sizeof(vectors[0].seed));
+      result = bip32_key_init_from_entropy(&key, vectors[0].seed, sizeof(vectors[0].seed));
     }
 
+    it("should not return error")
+      check_number(result, 0);
 
-    describe("when serializing bip32 root key") {
+    describe("when serializing master key") {
       char buffer[1024];
-      size_t size = sizeof(buffer);
-      bip32_key_serialize(&key, true, (uint8_t*)buffer, &size);
-      it("should return the correct xprv* string")
-	check_str(buffer, vectors[0].masterkey);
+      static size_t size = sizeof(buffer);
+      static int result = -1;
 
-      describe("and deserialize result") {
-        bip32_key_t deserialized_key;
-        int result = bip32_key_deserialize(&deserialized_key, buffer);
-        it ("should not fail deserialize")
-          check_number(result, 0);
-        it ("should create same key")
-          check(memcmp(&key, &deserialized_key, sizeof(bip32_key_t)) == 0);
+      before_each() {
+        result = bip32_key_serialize(&key, true, (uint8_t*)buffer, &size);
       }
-    }
 
-    describe("when deserializing bip32 root key") {
-      bip32_key_t deserialized_key;
-      int result = bip32_key_deserialize(&deserialized_key, vectors[0].masterkey);
-      it("should not fail deserialize")
+      it("then should not return error")
         check_number(result, 0);
 
-      it("should deserialize to a private key")
-        check(deserialized_key.public == false);
+      it("then should return the correct xprv* string")
+	check_str(buffer, vectors[0].masterkey);
+    }
+
+    describe("when deserializing master key") {
+      static bip32_key_t deserialized_key;
+      static int result = -1;
+      before() {
+        result = bip32_key_deserialize(&deserialized_key, vectors[0].masterkey);
+      }
+      it("then should not return error")
+        check_number(result, 0);
+
+      it ("then should create expected key")
+          check(memcmp(&key, &deserialized_key, sizeof(bip32_key_t)) == 0);
     }
   }
 }
