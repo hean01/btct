@@ -5,6 +5,7 @@
 #define check_str(got, expected) check(strcmp(got, expected) == 0, "expected string '%s' got '%s'", expected, got)
 #define check_number(got, expected) check(got == expected, "expected '%d' got '%d'", expected, got)
 #define check_number_hex(got, expected) check(got == expected, "expected '0x%x' got '0x%x'", expected, got)
+//#define check_bytes(got, expected, size) check(memcmp(got, expected, size) == 0, "expected '0x%x' got '0x%x'", expected, got)
 
 spec("bip32") {
 
@@ -52,13 +53,59 @@ spec("bip32") {
     it("should not return error")
       check_number(result, 0);
 
-    describe("when serializing master key") {
+    context("and generating public key") {
+      static int result = -1;
+      before() {
+        result = bip32_key_init_public_from_private_key(&public_key, &key);
+      }
+
+      it("should not fail")
+        check_number(result, 0);
+    }
+  }
+
+  context("key (de)serialization") {
+    static bip32_key_t private_key;
+    static bip32_key_t public_key;
+    static int result = -1;
+
+    before() {
+      bip32_key_init_from_entropy(&private_key, vectors[0].seed, sizeof(vectors[0].seed));
+      bip32_key_init_public_from_private_key(&public_key, &private_key);
+    }
+
+    describe("when serializing master key (m)") {
+      uint8_t buffer[1024];
+      static size_t size = sizeof(buffer);
+      static int result = -1;
+
+      before_each() {
+        result = bip32_key_serialize(&private_key, false, (uint8_t*)buffer, &size);
+      }
+
+      it("then not return error")
+        check_number(result, 0);
+
+      it("then version should be { 0x04, 0x88, 0xad, 0xe4 } (xprv)")
+        check(memcmp(buffer, (uint8_t[]){ 0x04, 0x88, 0xad, 0xe4 }, 4) == 0);
+
+      it("then depth should be 0")
+        check(memcmp((buffer + 4), (uint8_t[]){ 0x00 }, 1) == 0);
+
+      it("then parent fingerprint should be { 0x0, 0x0, 0x0, 0x0 }")
+        check(memcmp((buffer + 4 + 1), (uint8_t[]){ 0x0, 0x0, 0x0, 0x0 }, 4) == 0);
+
+      it("then index should be { 0x0, 0x0, 0x0, 0x0 }")
+        check(memcmp((buffer + 4 + 1 + 4), (uint8_t[]){ 0x0, 0x0, 0x0, 0x0 }, 4) == 0);
+    }
+
+    describe("when serializing private key (encoded)") {
       char buffer[1024];
       static size_t size = sizeof(buffer);
       static int result = -1;
 
       before_each() {
-        result = bip32_key_serialize(&key, true, (uint8_t*)buffer, &size);
+        result = bip32_key_serialize(&private_key, true, (uint8_t*)buffer, &size);
       }
 
       it("then should not return error")
@@ -68,7 +115,7 @@ spec("bip32") {
 	check_str(buffer, vectors[0].masterkey);
     }
 
-    describe("when deserializing master key") {
+    describe("when deserializing encoded private key") {
       static bip32_key_t deserialized_key;
       static int result = -1;
       before() {
@@ -78,19 +125,10 @@ spec("bip32") {
         check_number(result, 0);
 
       it ("then should create expected key")
-          check(memcmp(&key, &deserialized_key, sizeof(bip32_key_t)) == 0);
+        check(memcmp(&private_key, &deserialized_key, sizeof(bip32_key_t)) == 0);
     }
 
-    context("and generating public key") {
-      static int result = -1;
-      before() {
-        result = bip32_key_init_public_from_private_key(&public_key, &key);
-      }
-
-      it("should not fail")
-        check_number(result, 0);
-
-      describe("when serialize of public key") {
+    describe("when serialize public key (encoded)") {
         char buffer[1024];
         static size_t size = sizeof(buffer);
         static int result = -1;
@@ -104,15 +142,14 @@ spec("bip32") {
 
         it("should return the expected xpub* string")
           check_str(buffer, vectors[0].publickey);
-      }
     }
 
-    describe("when deserializing known public key") {
+    describe("when deserializing encoded public key") {
       static bip32_key_t deserialized_key;
       static int result = -1;
 
       before() {
-        bip32_key_init_public_from_private_key(&public_key, &key);
+        bip32_key_init_public_from_private_key(&public_key, &private_key);
         result = bip32_key_deserialize(&deserialized_key, vectors[0].publickey);
       }
 
