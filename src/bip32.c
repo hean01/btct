@@ -1,6 +1,7 @@
 #include <string.h>
 #include <nettle/hmac.h>
 #include <nettle/sha2.h>
+#include <nettle/ripemd160.h>
 
 #include "utils.h"
 #include "../external/libbase58/libbase58.h"
@@ -244,4 +245,45 @@ bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size)
     ptr++;
 
     return _base58_checksum_encode(buf, ptr - buf, result, size);
+}
+
+
+int
+bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_key_t *public_key)
+{
+  if (public_key->public == false)
+    return -1;
+
+  memset(ident, 0, sizeof(bip32_key_identifier_t));
+
+  // serialize
+  uint8_t buf[1024];
+  size_t buf_size = sizeof(buf);
+  if (bip32_key_serialize(public_key, true, buf, &buf_size) != 0)
+    return -1;
+
+  // sha256 of public_key.key.public
+  uint8_t hashed[SHA256_DIGEST_SIZE];
+  struct sha256_ctx sha256;
+  sha256_init(&sha256);
+  sha256_update(&sha256, strlen(buf), buf);
+  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed);
+
+  // ripemd160 of result into ident
+  struct ripemd160_ctx ripemd160;
+  ripemd160_init(&ripemd160);
+  ripemd160_update(&ripemd160, sizeof(hashed), hashed);
+  ripemd160_digest(&ripemd160, sizeof(bip32_key_identifier_t), *ident);
+
+  return 0;
+}
+
+int
+bip32_key_identifier_fingerprint(const bip32_key_identifier_t *ident, uint32_t *fingerprint)
+{
+  *fingerprint = utils_in_u32_be(*ident);
+  if (*fingerprint == 0)
+    return -1;
+
+  return 0;
 }

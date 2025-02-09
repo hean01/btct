@@ -4,6 +4,7 @@
 
 #define check_str(got, expected) check(strcmp(got, expected) == 0, "expected string '%s' got '%s'", expected, got)
 #define check_number(got, expected) check(got == expected, "expected '%d' got '%d'", expected, got)
+#define check_number_hex(got, expected) check(got == expected, "expected '0x%x' got '0x%x'", expected, got)
 
 spec("bip32") {
 
@@ -120,6 +121,53 @@ spec("bip32") {
 
       it ("then should create expected key")
           check(memcmp(&public_key, &deserialized_key, sizeof(bip32_key_t)) == 0);
+    }
+  }
+
+  context("key identifiers") {
+    static bip32_key_t private_key;
+    static bip32_key_t public_key;
+    static int result = -1;
+
+    before() {
+      bip32_key_init_from_entropy(&private_key, vectors[0].seed, sizeof(vectors[0].seed));
+      bip32_key_init_public_from_private_key(&public_key, &private_key);
+    }
+
+    describe("when creating identifier from private key") {
+      static bip32_key_identifier_t ident;
+      it("then should return error")
+        check(bip32_key_identifier_init_from_key(&ident, &private_key) != 0);
+    }
+
+    describe("when creating identifier from public key") {
+      static bip32_key_identifier_t ident;
+      it("then should not return error")
+        check(bip32_key_identifier_init_from_key(&ident, &public_key) == 0);
+
+      describe("and generating a fingerprint") {
+        static uint32_t fingerprint;
+        static int result;
+
+        before() {
+          result = bip32_key_identifier_fingerprint(&ident, &fingerprint);
+        }
+
+        it("then should not return error")
+          check_number(result, 0);
+
+        it("then should generate expected fingerprint")
+          check_number_hex(fingerprint, 0xff4a48d1);
+      }
+    }
+
+    describe("when creating identifier from public key") {
+      static bip32_key_identifier_t ident;
+      static uint32_t fingerprint;
+      static int result;
+
+      it("then should not return error")
+        check(bip32_key_identifier_init_from_key(&ident, &public_key) == 0);
     }
   }
 }
