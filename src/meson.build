@@ -13,7 +13,7 @@ sources = [
 ]
 
 libbtct_static = static_library('btct', sources,
-	    link_with: [libbase58_static, sss_static],
+	    link_with: [libbase58_static, sss_static, secp256k1_static],
 	    include_directories: [sss_incdir])
 
 executable('btct', 'btct.c',

@@ -41,7 +41,9 @@ spec("bip32") {
 
   context("given initialized master key from know seed") {
     static bip32_key_t key;
-    static int result;
+    static bip32_key_t public_key;
+    static int result = -1;
+
     before_each() {
       result = bip32_key_init_from_entropy(&key, vectors[0].seed, sizeof(vectors[0].seed));
     }
@@ -76,6 +78,48 @@ spec("bip32") {
 
       it ("then should create expected key")
           check(memcmp(&key, &deserialized_key, sizeof(bip32_key_t)) == 0);
+    }
+
+    context("and generating public key") {
+      static int result = -1;
+      before() {
+        result = bip32_key_init_public_from_private_key(&public_key, &key);
+      }
+
+      it("should not fail")
+        check_number(result, 0);
+
+      describe("when serialize of public key") {
+        char buffer[1024];
+        static size_t size = sizeof(buffer);
+        static int result = -1;
+
+        before_each() {
+          result = bip32_key_serialize(&public_key, true, (uint8_t*)buffer, &size);
+        }
+
+        it("then should not return error")
+          check_number(result, 0);
+
+        it("should return the expected xpub* string")
+          check_str(buffer, vectors[0].publickey);
+      }
+    }
+
+    describe("when deserializing known public key") {
+      static bip32_key_t deserialized_key;
+      static int result = -1;
+
+      before() {
+        bip32_key_init_public_from_private_key(&public_key, &key);
+        result = bip32_key_deserialize(&deserialized_key, vectors[0].publickey);
+      }
+
+      it("then should not fail deserialize")
+        check_number(result, 0);
+
+      it ("then should create expected key")
+          check(memcmp(&public_key, &deserialized_key, sizeof(bip32_key_t)) == 0);
     }
   }
 }

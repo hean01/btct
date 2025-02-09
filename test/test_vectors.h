@@ -6,6 +6,7 @@ typedef struct test_vector_t {
   uint8_t seed[64];
   uint8_t privkey[64];
   char *masterkey;
+  char *publickey;
 } test_vector_t;
 
 static test_vector_t vectors[] = {
@@ -26,6 +27,7 @@ static test_vector_t vectors[] = {
       0x63, 0x0c, 0x7a, 0x3c, 0x4a, 0xb7, 0xc8, 0x1b, 0x2f, 0x00, 0x16, 0x98, 0xe7, 0x46, 0x3b, 0x04
     },
     .masterkey = "xprv9s21ZrQH143K2x4gnzRB1eZDq92Uuvy9CXbvgQGdvykXZ9mkkot6LBjzDpgaAfvzkuxJe9JKJXQ38VoPutxvACA5MsyoBs5UyQ4HZKGshGs",
+    .publickey = "xpub661MyMwAqRbcFS99u1xBNnVxPAryKPgzZkXXUngFVKHWRx6uJMCLsz4U56FN7PxTSeVqL8tPJpiCrs1KZh1dV2Bh6QyAbmNmjFRPnkrZP52",
   },
 
   {

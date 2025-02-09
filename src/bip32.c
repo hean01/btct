@@ -4,6 +4,8 @@
 
 #include "utils.h"
 #include "../external/libbase58/libbase58.h"
+#include "../external/secp256k1/include/secp256k1.h"
+
 #include "bip32.h"
 
 static int
@@ -14,7 +16,7 @@ _bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
     memset(ctx, 0, sizeof(bip32_key_t));
 
     ctx->public = public;
-    memcpy(ctx->key, secret, 32);
+    memcpy(ctx->key.private, secret, 32);
     memcpy(ctx->chain, chain, 32);
     ctx->depth = depth;
     ctx->index = index;
@@ -45,6 +47,30 @@ bip32_key_init_from_entropy(bip32_key_t *ctx, uint8_t *entropy, size_t size)
     return _bip32_key_init(ctx, privkey, chain, 0, index, fingerprint, false);
 }
 
+int
+bip32_key_init_public_from_private_key(bip32_key_t *ctx, const bip32_key_t *private)
+{
+  int res;
+  struct secp256k1_context *secp256k1;
+  struct secp256k1_pubkey pubkey;
+
+  memcpy(ctx, private, sizeof(bip32_key_t));
+  ctx->public = true;
+  memset(ctx->key.public, 0, sizeof(ctx->key.public));
+
+  secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+  if (secp256k1_context_randomize(secp256k1, 0) != 1)
+    return -1;
+
+  if (secp256k1_ec_pubkey_create(secp256k1, &pubkey, private->key.private) != 1)
+    return -2;
+
+  memcpy(ctx->key.public, pubkey.data, sizeof(pubkey.data));
+
+  secp256k1_context_destroy(secp256k1);
+  return 0;
+}
+
 static inline int
 _base58_checksum_encode(uint8_t *data, size_t size,
                         uint8_t *result, size_t *result_size)
@@ -70,7 +96,7 @@ bip32_key_serialize(bip32_key_t *ctx, bool encoded,
     uint8_t version_public[4] = { 0x04, 0x88, 0xb2, 0x1e };
 
     uint8_t *ptr = buf;
-    memcpy(ptr, ctx->public ? version_public : version_private, 4);
+    memcpy(ptr, ctx->public == true ? version_public : version_private, 4);
     ptr += 4;
 
     *ptr = ctx->depth;
@@ -88,12 +114,18 @@ bip32_key_serialize(bip32_key_t *ctx, bool encoded,
     if (ctx->public == false)
     {
         *ptr = 0x00;
-        memcpy(ptr+1, ctx->key, 32);
+        memcpy(ptr+1, ctx->key.private, 32);
         ptr += 33;
     }
     else
     {
-        // !!! FIXME !!!
+      size_t pubkey_size = 33;
+      struct secp256k1_context *secp256k1;
+      secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+      secp256k1_context_randomize(secp256k1, 0);
+      secp256k1_ec_pubkey_serialize(secp256k1, ptr, &pubkey_size, &ctx->key.public, SECP256K1_EC_COMPRESSED);
+      secp256k1_context_destroy(secp256k1);
+      ptr += 33;
     }
 
     if (!encoded)
@@ -175,12 +207,23 @@ bip32_key_deserialize(bip32_key_t *key, const char *encoded_key)
   memcpy(key->chain, pbuf, 32);
   pbuf += 32;
 
-  // if private key, skip over 0x00 byte padding
-  if (!key->public)
+  // get key
+  if (key->public == false) {
     pbuf++;
+    memcpy(key->key.private, pbuf, 32);
+  }
+  else
+  {
+    int res;
+    struct secp256k1_context *secp256k1;
+    struct secp256k1_pubkey pubkey;
+    secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    secp256k1_context_randomize(secp256k1, 0);
+    if (secp256k1_ec_pubkey_parse(secp256k1, key->key.public, pbuf, 33) != 1)
+      return -3;
+    secp256k1_context_destroy(secp256k1);
+  }
 
-  // get key from buf
-  memcpy(key->key, pbuf, 32);
   return 0;
 }
 
@@ -195,7 +238,7 @@ bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size)
     uint8_t *ptr = buf;
     *ptr = 0x80;
     ptr++;
-    memcpy(ptr, ctx->key, 32);
+    memcpy(ptr, ctx->key.private, 32);
     ptr += 32;
     *ptr = 0x01;
     ptr++;
