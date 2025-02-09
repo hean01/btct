@@ -249,17 +249,24 @@ bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size)
 
 
 int
-bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_key_t *public_key)
+bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_key_t *key)
 {
-  if (public_key->public == false)
-    return -1;
+  bip32_key_t public_key;
+
+  if (key->public == false)
+  {
+    if (bip32_key_init_public_from_private_key(&public_key, key) != 0)
+      return -1;
+  }
+  else
+    memcpy(&public_key, key, sizeof(bip32_key_t));
 
   memset(ident, 0, sizeof(bip32_key_identifier_t));
 
   // serialize
   uint8_t buf[1024];
   size_t buf_size = sizeof(buf);
-  if (bip32_key_serialize(public_key, true, buf, &buf_size) != 0)
+  if (bip32_key_serialize(&public_key, true, buf, &buf_size) != 0)
     return -1;
 
   // sha256 of public_key.key.public

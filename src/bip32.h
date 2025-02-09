@@ -28,7 +28,7 @@ int bip32_key_deserialize(bip32_key_t *ctx, const char *encoded_key);
 int bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size);
 
 typedef uint8_t bip32_key_identifier_t[RIPEMD160_DIGEST_SIZE];
-int bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_key_t *public_key);
+int bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_key_t *key);
 int bip32_key_identifier_fingerprint(const bip32_key_identifier_t *ident, uint32_t *fingerprint);
 
 #endif

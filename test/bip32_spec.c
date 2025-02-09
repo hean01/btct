@@ -136,8 +136,23 @@ spec("bip32") {
 
     describe("when creating identifier from private key") {
       static bip32_key_identifier_t ident;
-      it("then should return error")
-        check(bip32_key_identifier_init_from_key(&ident, &private_key) != 0);
+      it("then should return non error")
+        check(bip32_key_identifier_init_from_key(&ident, &private_key) == 0);
+
+      describe("and generating a fingerprint") {
+        static uint32_t fingerprint;
+        static int result;
+
+        before() {
+          result = bip32_key_identifier_fingerprint(&ident, &fingerprint);
+        }
+
+        it("then should not return error")
+          check_number(result, 0);
+
+        it("then should generate expected fingerprint")
+          check_number_hex(fingerprint, 0xff4a48d1);
+      }
     }
 
     describe("when creating identifier from public key") {
