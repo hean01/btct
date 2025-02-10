@@ -188,7 +188,7 @@ spec("bip32") {
           check_number(result, 0);
 
         it("then should generate expected fingerprint")
-          check_number_hex(fingerprint, 0xff4a48d1);
+          check_number_hex(fingerprint, 0xb8688df1);
       }
     }
 
@@ -209,7 +209,7 @@ spec("bip32") {
           check_number(result, 0);
 
         it("then should generate expected fingerprint")
-          check_number_hex(fingerprint, 0xff4a48d1);
+          check_number_hex(fingerprint, 0xb8688df1);
       }
     }
 

@@ -263,17 +263,21 @@ bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_ke
 
   memset(ident, 0, sizeof(bip32_key_identifier_t));
 
-  // serialize
-  uint8_t buf[1024];
-  size_t buf_size = sizeof(buf);
-  if (bip32_key_serialize(&public_key, true, buf, &buf_size) != 0)
-    return -1;
+  // serialize public key
+  size_t pubkey_size = 33;
+  uint8_t serialized_public_key[33];
+  struct secp256k1_context *secp256k1;
+  secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+  secp256k1_context_randomize(secp256k1, 0);
+  secp256k1_ec_pubkey_serialize(secp256k1, serialized_public_key,
+                                &pubkey_size, &public_key.key.public, SECP256K1_EC_COMPRESSED);
+  secp256k1_context_destroy(secp256k1);
 
   // sha256 of public_key.key.public
   uint8_t hashed[SHA256_DIGEST_SIZE];
   struct sha256_ctx sha256;
   sha256_init(&sha256);
-  sha256_update(&sha256, strlen(buf), buf);
+  sha256_update(&sha256, 33, serialized_public_key);
   sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed);
 
   // ripemd160 of result into ident
