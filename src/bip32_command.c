@@ -185,11 +185,97 @@ _bip32_derive_command(int argc, char **argv) {
     return _bip32_derive_key(path);
 }
 
+static int
+_bip32_pubkey()
+{
+    bip32_key_t key, public;
+    char encoded_key[4096]={0};
+    uint8_t buf[512] = {0};
+    size_t bytes = 0;
+
+    freopen(NULL, "rb", stdin);
+    while (fread( encoded_key + bytes, 1, 1, stdin))
+        bytes++;
+
+    // strip newline
+    if (encoded_key[bytes-1] == '\n') {
+        encoded_key[bytes-1] = '\0';
+        bytes--;
+    }
+
+    if (bip32_key_deserialize(&key, encoded_key) != 0)
+    {
+      fputs("bip32.pubkey: Failed to deserialize key from stdin\n", stderr);
+      return -1;
+    }
+
+    if (key.public == true)
+    {
+      fputs("bip32.pubkey: Failed, not a private key\n", stderr);
+      return -2;
+    }
+
+    if (bip32_key_init_public_from_private_key(&public, &key) != 0)
+      return -3;
+
+    bytes = sizeof(buf);
+    bip32_key_serialize(&public, true, buf, &bytes);
+
+    fprintf(stdout, "%s\n", buf);
+    return 0;
+}
+
+static void
+_bip32_pubkey_usage(void)
+{
+    fputs("usage: btct bip32.pubkey\n", stderr);
+    fputs("\n", stderr);
+    fputs("Reads a encoded private key and outputs its corresponding public key in encoded format.\n", stderr);
+    fputs("\n", stderr);
+    fputs("examples:\n", stderr);
+    fputs("\n", stderr);
+    fputs("  Create a HD wallet master key from mnemonics and print its public key:\n", stderr);
+    fputs("\n", stderr);
+    fputs("      echo 'legal winner thank year wave sausage worth useful legal winner thank yellow' | \\\n", stderr);
+    fputs("        btct bip39.seed --passphrase=TREZOR | \\\n", stderr);
+    fputs("        btct bip32.masterkey | \\\n", stderr);
+    fputs("        btct bip32.pubkey\n", stderr);
+    fputs("\n", stderr);
+}
+
+static int
+_bip32_pubkey_command(int argc, char **argv)
+{
+    int c;
+    while (1)
+    {
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"help",  no_argument, 0, 'h' },
+            {0, 0, 0, 0}
+        };
+
+        c = getopt_long(argc, argv, "hp", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch (c) {
+            case 'h':
+                _bip32_pubkey_usage();
+                return EXIT_FAILURE;
+        }
+    }
+
+    return _bip32_pubkey();
+}
+
 static void _bip32_command_usage(void)
 {
     fputs("usage: btct bip32.<command> <args>\n", stderr);
     fputs("\n", stderr);
     fputs("  master_key       Generate hierarchical deterministic master key\n", stderr);
+    fputs("  pubkey           Generate public key for private key in encoded format\n", stderr);
+    fputs("                   read from stdin.\n", stderr);
     fputs("  derive           Derive a key from specified derivation path\n", stderr);
     fputs("\n",stderr);
     fputs("examples:\n", stderr);
@@ -208,6 +294,7 @@ int bip32_command(int argc, char **argv)
 
     struct command_t commands[] = {
         { "bip32.masterkey", _bip32_master_key_command },
+        { "bip32.pubkey", _bip32_pubkey_command },
         { "bip32.derive", _bip32_derive_command },
         { NULL, NULL, }
     };
