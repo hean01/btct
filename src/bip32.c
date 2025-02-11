@@ -26,6 +26,23 @@ _bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
     return 0;
 }
 
+static int
+_bip32_key_secp256k1_serialize_pubkey(const bip32_key_t *ctx, uint8_t *result)
+{
+  struct secp256k1_context *secp256k1;
+  size_t pubkey_size = 33;
+
+  if (ctx->public == false)
+    return -1;
+
+  secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+  secp256k1_context_randomize(secp256k1, 0);
+  secp256k1_ec_pubkey_serialize(secp256k1, result, &pubkey_size, &ctx->key.public, SECP256K1_EC_COMPRESSED);
+  secp256k1_context_destroy(secp256k1);
+
+  return 0;
+}
+
 int
 bip32_key_init_from_entropy(bip32_key_t *ctx, uint8_t *entropy, size_t size)
 {
@@ -120,12 +137,8 @@ bip32_key_serialize(bip32_key_t *ctx, bool encoded,
     }
     else
     {
-      size_t pubkey_size = 33;
-      struct secp256k1_context *secp256k1;
-      secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-      secp256k1_context_randomize(secp256k1, 0);
-      secp256k1_ec_pubkey_serialize(secp256k1, ptr, &pubkey_size, &ctx->key.public, SECP256K1_EC_COMPRESSED);
-      secp256k1_context_destroy(secp256k1);
+      if (_bip32_key_secp256k1_serialize_pubkey(ctx, ptr) != 0)
+        return -1;
       ptr += 33;
     }
 
@@ -264,16 +277,11 @@ bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_ke
   memset(ident, 0, sizeof(bip32_key_identifier_t));
 
   // serialize public key
-  size_t pubkey_size = 33;
   uint8_t serialized_public_key[33];
-  struct secp256k1_context *secp256k1;
-  secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-  secp256k1_context_randomize(secp256k1, 0);
-  secp256k1_ec_pubkey_serialize(secp256k1, serialized_public_key,
-                                &pubkey_size, &public_key.key.public, SECP256K1_EC_COMPRESSED);
-  secp256k1_context_destroy(secp256k1);
+  if (_bip32_key_secp256k1_serialize_pubkey(&public_key, serialized_public_key) != 0)
+        return -2;
 
-  // sha256 of public_key.key.public
+  // sha256 of serialized public key
   uint8_t hashed[SHA256_DIGEST_SIZE];
   struct sha256_ctx sha256;
   sha256_init(&sha256);
