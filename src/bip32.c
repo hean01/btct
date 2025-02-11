@@ -214,7 +214,7 @@ bip32_key_deserialize(bip32_key_t *key, const char *encoded_key)
   pbuf += 4;
 
   // get index
-  memcpy((uint8_t *)&key->index, pbuf, 4);
+  key->index = utils_in_u32_be(pbuf);
   pbuf += 4;
 
   // get chain
