@@ -8,6 +8,7 @@
 #include "../external/secp256k1/include/secp256k1.h"
 
 #include "bip32.h"
+#include "secp256k1.h"
 
 static int
 _bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
@@ -40,6 +41,14 @@ _bip32_key_secp256k1_serialize_pubkey(const bip32_key_t *ctx, uint8_t *result)
   secp256k1_ec_pubkey_serialize(secp256k1, result, &pubkey_size, &ctx->key.public, SECP256K1_EC_COMPRESSED);
   secp256k1_context_destroy(secp256k1);
 
+  return 0;
+}
+
+int
+bip32_key_init_private(bip32_key_t *ctx)
+{
+  memset(ctx, 0, sizeof(bip32_key_t));
+  ctx->public = false;
   return 0;
 }
 
@@ -88,6 +97,130 @@ bip32_key_init_public_from_private_key(bip32_key_t *ctx, const bip32_key_t *priv
   secp256k1_context_destroy(secp256k1);
   return 0;
 }
+
+#define TWO_TO_POWER_OF_31 ((uint32_t)2<<30)
+
+int
+bip32_key_derive_child_key(const bip32_key_t *parent, uint32_t index, bip32_key_t *child) {
+  struct hmac_sha512_ctx hmac_sha512;
+  uint8_t mac[64];
+  uint8_t zeros[10] = {0};
+  uint8_t tmp[1024];
+
+  memset(child, 0, sizeof(bip32_key_t));
+
+  if (parent->public)
+    return -1;
+
+  hmac_sha512_set_key(&hmac_sha512, sizeof(parent->chain), parent->chain);
+
+  if (index >= TWO_TO_POWER_OF_31)
+  {
+    // Create hardened child key
+    uint8_t *ptmp = tmp;
+    *ptmp = 0x00;
+    ptmp++;
+
+    memcpy(ptmp, parent->key.private, 32);
+    ptmp += 32;
+
+    utils_out_u32_be(ptmp, index);
+    ptmp += 4;
+
+    hmac_sha512_update(&hmac_sha512, ptmp - tmp, tmp);
+  }
+  else
+  {
+    // Create non hardened child key
+    uint8_t *ptmp = tmp;
+
+    // serialize parent public key into buffer
+
+    bip32_key_t parent_public_key;
+    bip32_key_init_public_from_private_key(&parent_public_key, parent);
+
+    if (_bip32_key_secp256k1_serialize_pubkey(&parent_public_key, ptmp) != 0)
+      return -2;
+    ptmp += 33;
+
+    // serialize index
+    utils_out_u32_be(ptmp, index);
+    ptmp += 4;
+
+    hmac_sha512_update(&hmac_sha512, ptmp - tmp, tmp);
+  }
+
+  hmac_sha512_digest(&hmac_sha512, 64, mac);
+
+  // copy chain to child key chain from right part of mac
+  memcpy(child->chain, mac + 32, 32);
+
+  size_t counter=0;
+  char buf[256] = {0};
+  mpz_t result, left, sec256k1_param_n, parent_key;
+
+  mpz_init(left);
+  mpz_import(left, 1, 1, 32, 1, 0, mac);
+  mpz_init_set_str(sec256k1_param_n, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
+  mpz_init(parent_key);
+  mpz_import(parent_key, 1, 1, 32, 1, 0, parent->key.private);
+
+  mpz_init(result);
+  mpz_add(result, left, parent_key);
+  mpz_mod(result, result, sec256k1_param_n);
+  mpz_export(child->key.private, &counter, 1, 32, 1, 0, result);
+
+  child->public = false;
+  child->depth = parent->depth + 1;
+  child->index = index;
+
+  bip32_key_identifier_t parent_key_ident;
+  uint32_t parent_fingerprint;
+  if (bip32_key_identifier_init_from_key(&parent_key_ident, parent) != 0)
+    return -2;
+  if (bip32_key_identifier_fingerprint(&parent_key_ident, &parent_fingerprint) != 0)
+    return -3;
+  utils_out_u32_be(child->parent_fingerprint, parent_fingerprint);
+
+  return 0;
+}
+
+int
+bip32_key_derive_child_by_path(const bip32_key_t *ctx, const char *path, bip32_key_t *child)
+{
+  bip32_key_t tmp, *current = ctx;
+  bool hardened;
+  uint32_t index;
+  char *token,  buffer[512];
+  snprintf(buffer, sizeof(buffer), path);
+
+  // FIXME: for now only private key derive
+  if (buffer[0] != 'm')
+    return -1;
+
+  token = strtok(buffer + 1, "/");
+  current = ctx;
+  while(token)
+  {
+    hardened = false;
+    if (token[strlen(token) - 1] == '\'') {
+      hardened = true;
+      token[strlen(token) - 1] = '\0';
+    }
+
+    index = atoi(token);
+    if (bip32_key_derive_child_key(current, hardened ? 0x80000000 + index : index, child) != 0)
+      return -2;
+
+    memcpy(&tmp, child, sizeof(bip32_key_t));
+    current = &tmp;
+
+    token = strtok(NULL, "/");
+  }
+
+  return 0;
+}
+
 
 static inline int
 _base58_checksum_encode(uint8_t *data, size_t size,

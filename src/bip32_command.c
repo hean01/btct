@@ -98,12 +98,99 @@ _bip32_master_key_command(int argc, char **argv)
     return _bip32_master_key(encode, wif);
 }
 
+static int
+_bip32_derive_key(const char *path)
+{
+    bip32_key_t key, child;
+    char encoded_key[4096]={0};
+    uint8_t buf[512] = {0};
+    size_t bytes = 0;
+
+    freopen(NULL, "rb", stdin);
+    while (fread( encoded_key + bytes, 1, 1, stdin))
+        bytes++;
+
+    // strip newline
+    if (encoded_key[bytes-1] == '\n') {
+        encoded_key[bytes-1] = '\0';
+        bytes--;
+    }
+
+    if (bip32_key_deserialize(&key, encoded_key) != 0)
+    {
+      fputs("bip32.derive: Failed to deserialize key from stdin\n", stderr);
+      return -1;
+    }
+
+    fprintf(stderr,"bip32.derive: Deriving key from path: %s\n", path);
+    if (bip32_key_derive_child_by_path(&key, path, &child) != 0)
+      return -2;
+
+    bytes = sizeof(buf);
+    bip32_key_serialize(&child, true, buf, &bytes);
+
+    fprintf(stdout, "%s\n", buf);
+    return 0;
+}
+
+static void
+_bip32_derive_usage(void)
+{
+    fputs("usage: btct bip32.derive <args>\n", stderr);
+    fputs("\n", stderr);
+    fputs("", stderr);
+    fputs("\n", stderr);
+    fputs("  -p, --path          Specify a derivation path, default path if not specified is\n", stderr);
+    fputs("                      following hardened årivate key for wallet account 0: `m/0'/0`.\n", stderr);
+    fputs("\n", stderr);
+    fputs("examples:\n", stderr);
+    fputs("\n", stderr);
+    fputs("  Create a HD wallet master key from mnemonics and derive a hardened wallet key for account #1:\n", stderr);
+    fputs("\n", stderr);
+    fputs("      echo 'legal winner thank year wave sausage worth useful legal winner thank yellow' | \\\n", stderr);
+    fputs("        btct bip39.seed --passphrase=TREZOR | \\\n", stderr);
+    fputs("        btct bip32.masterkey | \\\n", stderr);
+    fputs("        btct bip32.derive --path=\"m/0'/1\"\\\n", stderr);
+    fputs("\n", stderr);
+}
+
+static int
+_bip32_derive_command(int argc, char **argv) {
+    int c;
+    const char *path;
+    while (1)
+    {
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"help",  no_argument, 0, 'h' },
+            {"path",  required_argument, 0, 'p' },
+            {0, 0, 0, 0}
+        };
+
+        c = getopt_long(argc, argv, "hp", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch (c) {
+            case 'h':
+                _bip32_derive_usage();
+                return EXIT_FAILURE;
+
+            case 'p':
+                path = optarg;
+                break;
+        }
+    }
+
+    return _bip32_derive_key(path);
+}
 
 static void _bip32_command_usage(void)
 {
     fputs("usage: btct bip32.<command> <args>\n", stderr);
     fputs("\n", stderr);
     fputs("  master_key       Generate hierarchical deterministic master key\n", stderr);
+    fputs("  derive           Derive a key from specified derivation path\n", stderr);
     fputs("\n",stderr);
     fputs("examples:\n", stderr);
     fputs("\n",stderr);
@@ -121,6 +208,7 @@ int bip32_command(int argc, char **argv)
 
     struct command_t commands[] = {
         { "bip32.masterkey", _bip32_master_key_command },
+        { "bip32.derive", _bip32_derive_command },
         { NULL, NULL, }
     };
 

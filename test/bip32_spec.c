@@ -75,7 +75,7 @@ spec("bip32") {
     }
 
     describe("when serializing master key (m)") {
-      uint8_t buffer[1024];
+      static uint8_t buffer[1024];
       static size_t size = sizeof(buffer);
       static int result = -1;
 
@@ -89,14 +89,41 @@ spec("bip32") {
       it("then version should be { 0x04, 0x88, 0xad, 0xe4 } (xprv)")
         check(memcmp(buffer, (uint8_t[]){ 0x04, 0x88, 0xad, 0xe4 }, 4) == 0);
 
-      it("then depth should be 0")
-        check(memcmp((buffer + 4), (uint8_t[]){ 0x00 }, 1) == 0);
+      it("then depth should be 1")
+        check(memcmp((buffer + 4), (uint8_t[]){ 0x0 }, 1) == 0);
 
       it("then parent fingerprint should be { 0x0, 0x0, 0x0, 0x0 }")
         check(memcmp((buffer + 4 + 1), (uint8_t[]){ 0x0, 0x0, 0x0, 0x0 }, 4) == 0);
 
       it("then index should be { 0x0, 0x0, 0x0, 0x0 }")
         check(memcmp((buffer + 4 + 1 + 4), (uint8_t[]){ 0x0, 0x0, 0x0, 0x0 }, 4) == 0);
+    }
+
+    describe("when serializing derived hardend key key (m/0')") {
+      static bip32_key_t child;
+      static uint8_t buffer[1024];
+      static size_t size = sizeof(buffer);
+      static int result = -1;
+
+      before() {
+        result = bip32_key_derive_child_key(&private_key, 2<<30, &child);
+        result = bip32_key_serialize(&child, false, (uint8_t*)buffer, &size);
+      }
+
+      it("then not return error")
+        check_number(result, 0);
+
+      it("then version should be { 0x04, 0x88, 0xad, 0xe4 } (xprv)")
+        check(memcmp(buffer, (uint8_t[]){ 0x04, 0x88, 0xad, 0xe4 }, 4) == 0);
+
+      it("then depth should be 1")
+        check(memcmp((buffer + 4), (uint8_t[]){ 0x01 }, 1) == 0);
+
+      it("then parent fingerprint should be { 0xb8, 0x68, 0x8d, 0xf1}")
+        check(memcmp((buffer + 4 + 1), (uint8_t[]){ 0xb8, 0x68, 0x8d, 0xf1 }, 4) == 0);
+
+      it("then index should be { 0x80, 0x0, 0x0, 0x0 }")
+        check(memcmp((buffer + 4 + 1 + 4), (uint8_t[]){ 0x80, 0x0, 0x0, 0x0 }, 4) == 0);
     }
 
     describe("when serializing private key (encoded)") {
@@ -158,6 +185,156 @@ spec("bip32") {
 
       it ("then should create expected key")
           check(memcmp(&public_key, &deserialized_key, sizeof(bip32_key_t)) == 0);
+    }
+  }
+
+  context("key deriviation") {
+    static bip32_key_t private_key;
+    static bip32_key_t public_key;
+    static int result = -1;
+
+    before() {
+      bip32_key_init_from_entropy(&private_key, vectors[0].seed, sizeof(vectors[0].seed));
+      bip32_key_init_public_from_private_key(&public_key, &private_key);
+    }
+
+    context("given a known private key") {
+
+      describe("when derive a hardend account child private key m/'0") {
+        static bip32_key_t child;
+        static int result = -1;
+        before() {
+          result = bip32_key_derive_child_key(&private_key, 2<<30, &child);
+        }
+
+        it("then should return non error")
+          check_number(result, 0);
+
+        it("then should be a private key")
+          check(child.public == false);
+
+        it("then depth should be 1")
+          check_number(child.depth, 1);
+
+        it("then parent fingerprint should be { 0xb8, 0x68, 0x8d, 0xf1}")
+          check(memcmp(child.parent_fingerprint, (uint8_t[]){ 0xb8, 0x68, 0x8d, 0xf1 }, 4) == 0);
+
+        it("then index should be 0x80000000")
+          check_number_hex(child.index, 0x80000000);
+
+        describe("and serialize child key (encoded)") {
+          static bip32_key_t child;
+          static char buffer[1024];
+          static size_t size = sizeof(buffer);
+          before() {
+            bip32_key_derive_child_key(&private_key, 0x80000000, &child);
+            bip32_key_serialize(&child, true, (uint8_t*)buffer, &size);
+          }
+          it("should return the expected xprv9vFm...xEjA string")
+            check_str(buffer, "xprv9vFm7KXyXnwkE9E1ETdKZWq9n5WqMP8eomCbJj3cAvwVErBjeq4U7Zw9EVXXABvrSFqik5ZfWH1VbSVCvmvVYD9ox31YnzmRkrXU22mxEjA");
+        }
+      }
+
+      describe("when derive a hardend account child private key m/'0/'1") {
+        static bip32_key_t child_idx1, child_idx2;
+        static int result = -1;
+        before() {
+          result = bip32_key_derive_child_key(&private_key, 0x80000000, &child_idx1);
+          result = bip32_key_derive_child_key(&child_idx1, 0x80000001, &child_idx2);
+        }
+
+        it("then should return non error")
+          check_number(result, 0);
+
+        it("then should be a private key")
+          check(child_idx2.public == false);
+
+        it("then depth should be 2")
+          check_number(child_idx2.depth, 2);
+
+        it("then parent fingerprint should be { 0xc8, 0x79, 0x95, 0x0c}")
+          check(memcmp(child_idx2.parent_fingerprint, (uint8_t[]){ 0xc8, 0x79, 0x95, 0x0c }, 4) == 0);
+
+        it("then index should be 0x80000001")
+          check_number_hex(child_idx2.index, 0x80000001);
+
+        describe("and serialize child key (encoded)") {
+          static char buffer[1024];
+          static size_t size = sizeof(buffer);
+          before() {
+            bip32_key_serialize(&child_idx2, true, (uint8_t*)buffer, &size);
+          }
+          it("should return the expected xprv9xFk...B8WH string")
+            check_str(buffer, "xprv9xFkEEMD49vRgSHunvh2tyzK1ByWFygQEEBiSAUxmRqaE27AS73Hu9AV3Pb5zj1noVtAcySiqnkYC5VXi1wBoZFcRTGXCsiW6BwbfbHB8WH");
+        }
+      }
+
+      describe("when derive a normal account child private key m/'0/1") {
+        static bip32_key_t child_idx1, child_idx2;
+        static int result = -1;
+        before() {
+          result = bip32_key_derive_child_key(&private_key, 0x80000000, &child_idx1);
+          result = bip32_key_derive_child_key(&child_idx1, 1, &child_idx2);
+        }
+
+        it("then should return non error")
+          check_number(result, 0);
+
+        it("then should be a private key")
+          check(child_idx2.public == false);
+
+        it("then depth should be 2")
+          check_number(child_idx2.depth, 2);
+
+        it("then parent fingerprint should be { 0xc8, 0x79, 0x95, 0x0c}")
+          check(memcmp(child_idx2.parent_fingerprint, (uint8_t[]){ 0xc8, 0x79, 0x95, 0x0c }, 4) == 0);
+
+        it("then index should be 1")
+          check_number(child_idx2.index, 1);
+
+        describe("and serialize child key (encoded)") {
+          static char buffer[1024];
+          static size_t size = sizeof(buffer);
+          before() {
+            bip32_key_serialize(&child_idx2, true, (uint8_t*)buffer, &size);
+          }
+          it("should return the expected xprv9xFk...b13t string")
+            check_str(buffer, "xprv9xFkEEM4iVPTUh9qEBen68GJ9ZfL5okMUwH6o9td98zu3HPduhYqpqybE6po8NuKA1e43opFjZUJn4p1xwanNf3RJQU3u5PRqz8aA8wb13t");
+        }
+      }
+
+      describe("when derive a normal account child private key using path derive m/0'/1'") {
+        static bip32_key_t child;
+        static int result = -1;
+        before() {
+          result = bip32_key_derive_child_by_path(&private_key, "m/0'/1'", &child);
+        }
+
+        it("then should return non error")
+          check_number(result, 0);
+
+        it("then should be a private key")
+          check(child.public == false);
+
+        it("then depth should be 2")
+          check_number(child.depth, 2);
+
+        it("then parent fingerprint should be { 0xc8, 0x79, 0x95, 0x0c}")
+          check(memcmp(child.parent_fingerprint, (uint8_t[]){ 0xc8, 0x79, 0x95, 0x0c }, 4) == 0);
+
+        it("then index should be 1")
+          check_number_hex(child.index, 0x80000001);
+
+        describe("and serialize child key (encoded)") {
+          static char buffer[1024];
+          static size_t size = sizeof(buffer);
+          before() {
+            bip32_key_serialize(&child, true, (uint8_t*)buffer, &size);
+          }
+          it("should return the expected xprv9xFk...B8WH string")
+            check_str(buffer, "xprv9xFkEEMD49vRgSHunvh2tyzK1ByWFygQEEBiSAUxmRqaE27AS73Hu9AV3Pb5zj1noVtAcySiqnkYC5VXi1wBoZFcRTGXCsiW6BwbfbHB8WH");
+        }
+      }
     }
   }
 
