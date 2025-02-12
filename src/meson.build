@@ -13,6 +13,8 @@ sources = [
   'bip32_command.c',
   'bip39_command.c',
   'bip39.c',
+  'bip44.c',
+  'bip44_command.c',
   'sss_command.c',
 ]
 

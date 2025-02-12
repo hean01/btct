@@ -7,11 +7,13 @@
 
 extern int (bip32_command)(int,char**);
 extern int (bip39_command)(int,char**);
+extern int (bip44_command)(int,char**);
 extern int (sss_command)(int,char**);
 
 static command_t commands[] = {
     { "bip32", bip32_command },
     { "bip39", bip39_command },
+    { "bip44", bip44_command },
     { "sss", sss_command },
     { NULL, NULL, }
 };
@@ -26,6 +28,8 @@ static void usage(void)
     fputs("  bip32        Hierarchical Deterministic Wallets\n", stderr);
     fputs("\n", stderr);
     fputs("  bip39        Mnemonic code for generating deterministic keys\n", stderr);
+    fputs("\n", stderr);
+    fputs("  bip44        Multi-Account Hierarchy for Deterministic Wallets\n", stderr);
     fputs("\n", stderr);
     fputs("  sss          Shamir Secret Sharing is used to secure a secret in a distributed form,\n"
           "               most often to secure encryption keys. The secret is split into multiple\n"
