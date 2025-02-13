@@ -41,4 +41,26 @@ spec("bip32") {
 	check_number_hex(value, u32);
     }
   }
+
+  context("base85 encoding") {
+    describe("when encoding 0x000000") {
+      static uint8_t data[] = {0x00, 0x00, 0x00, 0x00};
+      static char result[512] = {0};
+      before() {
+        utils_base85_encode(data, 4, result);
+      }
+      it("should return 'z'")
+        check_str(result, "z");
+    }
+
+    describe("when encoding 'helloyou'") {
+      static uint8_t data[] = {'h', 'e', 'l', 'l', 'o', 'y', 'o', 'u'};
+      static char result[512] = {0};
+      before() {
+        utils_base85_encode(data, 8, result);
+      }
+      it("should return 'Xk~0{Z+UNZ'")
+        check_str(result, "Xk~0{Z+UNZ");
+    }
+  }
 }

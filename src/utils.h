@@ -35,4 +35,5 @@
 
 void utils_hexdump(uint8_t *data, size_t size, FILE *out);
 
+int utils_base85_encode(const uint8_t *data, size_t size, char *result);
 #endif
