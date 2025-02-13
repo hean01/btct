@@ -1,6 +1,8 @@
 #include <string.h>
 #include <nettle/hmac.h>
 
+#include "../external/libbase58/libbase58.h"
+
 #include "bip39.h"
 #include "bip85.h"
 
@@ -55,5 +57,23 @@ bip85_application_bip39(const bip32_key_t *key, uint32_t language, uint32_t word
   if (bip39_to_mnemonics(&bip39, entropy, entropy_bits, result, result_cnt) != 0)
     return -4;
 
+  return 0;
+}
+
+int
+bip85_application_pwd_base85(const bip32_key_t *key, uint32_t length, uint32_t index, char *result)
+{
+  char buf[1024] = {0};
+  size_t buf_size = sizeof(buf);
+  uint8_t entropy[512] = {0};
+
+  snprintf(buf, buf_size, "707785'/%d'/%d'", length, index);
+  if (bip85_entropy_from_key(key, buf, &entropy) != 0)
+    return -1;
+
+  if (utils_base85_encode(entropy, 64, buf) != 0)
+    return -2;
+
+  strncat(result, buf, length);
   return 0;
 }

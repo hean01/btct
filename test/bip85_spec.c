@@ -129,5 +129,34 @@ spec("bip85") {
         }
       }
     }
+
+    context("application pwd_base85") {
+      describe("when generating password with length 12 using index 0") {
+        static char password[64] = {0};
+        before () {
+          bip85_application_pwd_base85(&key, 12, 0, &password);
+        }
+
+        it("then generated password should be 12 characters long")
+          check_number(strlen(password), 12);
+
+        it("then generated password should be expected string")
+          check_str(password, "_s`{TW89)i4`");
+      }
+
+
+      describe("when generating password with length 8 using index 1") {
+        static char password[64] = {0};
+        before () {
+          bip85_application_pwd_base85(&key, 8, 1, &password);
+        }
+
+        it("then generated password should be 8 characters long")
+          check_number(strlen(password), 8);
+
+        it("then generated password should be expected string")
+          check_str(password, "W%v4tL`%");
+      }
+}
   }
 }

@@ -127,11 +127,87 @@ _bip85_bip39_command(int argc, char **argv)
   return _bip85_bip39(language, word_cnt, index);
 }
 
+static void
+_bip85_pwd_base85_command_usage(void)
+{
+  fputs("usage: btct bip85.pwd_base85 <args>\n", stderr);
+  fputs("\n", stderr);
+  fputs("Generates a new password from deterministic entropy using base85 encoding.\n", stderr);
+  fputs("\n", stderr);
+  fputs("  -l, --length <length>  Specify the length of password, default is 12.\n", stderr);
+  fputs("  -i, --index <index>    Specify the index for the password, default is 0\n", stderr);
+  fputs("\n", stderr);
+  fputs("  Generate a password with length 12 from index 1\n", stderr);
+  fputs("\n", stderr);
+  fputs("      echo 'legal winner thank year wave sausage worth useful legal winner thank yellow' \\\n",stderr);
+  fputs("          | btct bip39.seed --passphrase=TREZOR \\\n", stderr);
+  fputs("          | btct bip32.masterkey\\\n", stderr);
+  fputs("          | btct bip85.pwd_base85 --length=12 --index=1\n", stderr);
+  fputs("\n", stderr);
+}
+
+static int
+_bip85_pwd_base85(uint32_t length, uint32_t index)
+{
+  bip32_key_t key;
+  char buf[512];
+
+  if (_bip85_read_private_key_from_stdin(&key) != 0)
+    return EXIT_FAILURE;
+
+  if (bip85_application_pwd_base85(&key, length, index, buf) != 0)
+    return EXIT_FAILURE;
+
+  fprintf(stdout, "%s\n", buf);
+
+  return EXIT_SUCCESS;
+}
+
+static  int
+_bip85_pwd_base85_command(int argc, char **argv)
+{
+  int c;
+  uint32_t length = 12;
+  uint32_t index = 0;
+
+  while (1)
+    {
+      int option_index = 0;
+      static struct option long_options[] = {
+        {"help",  no_argument, 0, 'h' },
+        {"length",  required_argument, 0, 'l' },
+        {"index",  required_argument, 0, 'i' },
+        {0, 0, 0, 0}
+      };
+
+      c = getopt_long(argc, argv, "hl:i:", long_options, &option_index);
+      if (c == -1)
+        break;
+
+      switch (c) {
+      case 'h':
+        _bip85_pwd_base85_command_usage();
+        return EXIT_FAILURE;
+
+      case 'l':
+        length = atoi(optarg);
+        break;
+
+      case 'i':
+        index = atoi(optarg);
+        break;
+      }
+    }
+
+  return _bip85_pwd_base85(length, index);
+}
+
 static void _bip85_command_usage(void)
 {
   fputs("usage: btct bip85.<command> <args>\n", stderr);
   fputs("\n", stderr);
   fputs("  bip39           Derive a deterministic mneonmic seed phrase.\n", stderr);
+  fputs("  pwd_base85      Derive a deterministic password.\n", stderr);
   fputs("\n",stderr);
   fputs("examples:\n", stderr);
   fputs("\n",stderr);
@@ -150,6 +226,7 @@ int bip85_command(int argc, char **argv)
 
   struct command_t commands[] = {
     { "bip85.bip39", _bip85_bip39_command },
+    { "bip85.pwd_base85", _bip85_pwd_base85_command },
     { NULL, NULL, }
   };
 
