@@ -202,11 +202,81 @@ _bip85_pwd_base85_command(int argc, char **argv)
   return _bip85_pwd_base85(length, index);
 }
 
+static void
+_bip85_hd_seed_wif_command_usage(void)
+{
+  fputs("usage: btct bip85.hd_seed_wif <args>\n", stderr);
+  fputs("\n", stderr);
+  fputs("Generates a HD Seed WIF from deterministic entropy for Bitcoin Core wallets.\n", stderr);
+  fputs("\n", stderr);
+  fputs("  -i, --index <index>    Specify the index for the password, default is 0\n", stderr);
+  fputs("\n", stderr);
+  fputs("  Generate HD Seed WIF wallet using index 2\n", stderr);
+  fputs("\n", stderr);
+  fputs("      echo 'legal winner thank year wave sausage worth useful legal winner thank yellow' \\\n",stderr);
+  fputs("          | btct bip39.seed --passphrase=TREZOR \\\n", stderr);
+  fputs("          | btct bip32.masterkey\\\n", stderr);
+  fputs("          | btct bip85.hd_seed_wif --index=2\n", stderr);
+  fputs("\n", stderr);
+}
+
+static int
+_bip85_hd_seed_wif(uint32_t index)
+{
+  bip32_key_t key;
+  char buf[512];
+  size_t size;
+
+  if (_bip85_read_private_key_from_stdin(&key) != 0)
+    return EXIT_FAILURE;
+
+  if (bip85_application_hd_seed_wif(&key, index, buf, &size) != 0)
+    return EXIT_FAILURE;
+
+  fprintf(stdout, "%s\n", buf);
+
+  return EXIT_SUCCESS;
+}
+
+static int
+_bip85_hd_seed_wif_command(int argc, char **argv)
+{
+  int c;
+  uint32_t index = 0;
+
+  while (1)
+    {
+      int option_index = 0;
+      static struct option long_options[] = {
+        {"help",  no_argument, 0, 'h' },
+        {"index",  required_argument, 0, 'i' },
+        {0, 0, 0, 0}
+      };
+
+      c = getopt_long(argc, argv, "hi:", long_options, &option_index);
+      if (c == -1)
+        break;
+
+      switch (c) {
+      case 'h':
+        _bip85_hd_seed_wif_command_usage();
+        return EXIT_FAILURE;
+
+      case 'i':
+        index = atoi(optarg);
+        break;
+      }
+    }
+
+  return _bip85_hd_seed_wif(index);
+}
+
 static void _bip85_command_usage(void)
 {
   fputs("usage: btct bip85.<command> <args>\n", stderr);
   fputs("\n", stderr);
   fputs("  bip39           Derive a deterministic mneonmic seed phrase.\n", stderr);
+  fputs("  hd_seed_wif     Derive a HD Seed for Bitcoin Core wallets.\n", stderr);
   fputs("  pwd_base85      Derive a deterministic password.\n", stderr);
   fputs("\n",stderr);
   fputs("examples:\n", stderr);
@@ -227,6 +297,7 @@ int bip85_command(int argc, char **argv)
   struct command_t commands[] = {
     { "bip85.bip39", _bip85_bip39_command },
     { "bip85.pwd_base85", _bip85_pwd_base85_command },
+    { "bip85.hd_seed_wif", _bip85_hd_seed_wif_command },
     { NULL, NULL, }
   };
 

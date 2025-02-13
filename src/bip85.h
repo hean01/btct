@@ -8,4 +8,5 @@ int bip85_entropy_from_key(const bip32_key_t *key, const char *subpath, uint8_t 
 int bip85_application_bip39(const bip32_key_t *key, uint32_t language, uint32_t word_cnt, uint32_t index,
                             char ***result, size_t *result_cnt);
 int bip85_application_pwd_base85(const bip32_key_t *key, uint32_t length, uint32_t index, char *result);
+int bip85_application_hd_seed_wif(const bip32_key_t *key, uint32_t index, char *result, size_t *size);
 #endif

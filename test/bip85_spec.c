@@ -157,6 +157,24 @@ spec("bip85") {
         it("then generated password should be expected string")
           check_str(password, "W%v4tL`%");
       }
-}
+    }
+
+    context("application HD-Seed WIF") {
+      describe("when generating password with length 12 using index 0") {
+        static char wif[256] = {0};
+        static size_t size;
+        static int result = -1;
+        before () {
+          size = sizeof(wif);
+          result = bip85_application_hd_seed_wif(&key, 0, &wif, &size);
+        }
+
+        it("then should not return error")
+          check_number(result, 0);
+
+        it("then generate wallet WIF should be expected string")
+          check_str(wif, "Kzyv4uF39d4Jrw2W7UryTHwZr1zQVNk4dAFyqE6BuMrMh1Za7uhp");
+      }
+    }
   }
 }

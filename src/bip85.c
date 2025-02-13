@@ -77,3 +77,24 @@ bip85_application_pwd_base85(const bip32_key_t *key, uint32_t length, uint32_t i
   strncat(result, buf, length);
   return 0;
 }
+
+int
+bip85_application_hd_seed_wif(const bip32_key_t *key, uint32_t index, char *result, size_t *size)
+{
+  char buf[1024] = {0};
+  size_t buf_size = sizeof(buf);
+  uint8_t entropy[512] = {0};
+  bip32_key_t private_key;
+
+  snprintf(buf, buf_size, "2'/%d'", index);
+  if (bip85_entropy_from_key(key, buf, &entropy) != 0)
+    return -1;
+
+  private_key.public = false;
+  memcpy(private_key.key.private, entropy, 32);
+
+  if (bip32_key_to_wif(&private_key, result, &size) != 0)
+    return -3;
+
+  return 0;
+}
