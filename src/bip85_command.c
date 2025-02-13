@@ -1,0 +1,161 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include <getopt.h>
+
+#include "command.h"
+#include "bip85.h"
+
+static int
+_bip85_read_private_key_from_stdin(bip32_key_t *key)
+{
+  uint8_t buf[1024]={0};
+  size_t bytes = 0;
+
+  // read and deserialize private key from stdin
+  freopen(NULL, "rb", stdin);
+  while (fread(buf + bytes, 1, 1, stdin))
+    bytes++;
+
+  if (buf[bytes-1] == '\n') {
+    buf[bytes-1] = '\0';
+    bytes--;
+  }
+
+  if (bip32_key_deserialize(key, buf) != 0)
+  {
+    fputs("bip85.*: failed to deserialize key from stdin\n", stderr);
+    return -1;
+  }
+
+  if (key->public == true)
+  {
+    fputs("bip85.*: failed, read private key is a public key\n", stderr);
+    return -2;
+  }
+
+  return 0;
+}
+
+static int
+_bip85_bip39(uint32_t language, uint32_t words, uint32_t index)
+{
+  bip32_key_t key;
+  char **result = NULL;
+  size_t result_count = 0;
+
+  if (_bip85_read_private_key_from_stdin(&key) != 0)
+    return EXIT_FAILURE;
+
+  if (bip85_application_bip39(&key, language, words, index, &result, &result_count) != 0)
+    return EXIT_FAILURE;
+  
+  for(size_t i = 0; i < result_count; i++) {
+    fprintf(stdout, "%s", result[i]);
+    if (i < result_count - 1)
+      fputs(" ", stdout);
+  }
+  fputs("\n", stdout);
+  
+  return EXIT_SUCCESS;
+}
+
+static void
+_bip85_bip39_command_usage(void)
+{
+  fputs("usage: btct bip85.bip39 <args>\n", stderr);
+  fputs("\n", stderr);
+  fputs("Generates a new bip39 mnemonics from derived entropy. Use this to create new deterministic\n", stderr);
+  fputs("wallets from one seed due to the works of bip85.\n", stderr);
+  fputs("\n", stderr);
+  fputs("  -l, --language <index> Specify which language to use for  mnemonics , default\n", stderr);
+  fputs("                         language is 0 (english).\n", stderr);
+  fputs("  -w, --words <count>    Specify the amount of words to use, default is 12\n", stderr);
+  fputs("  -i, --index <index>    Specify the index for the mnemonics, default is 0\n", stderr);
+  fputs("\n", stderr);
+  fputs("  Generate 24 words mnemonics for use with a hot wallet\n", stderr);
+  fputs("\n", stderr);
+  fputs("      echo 'legal winner thank year wave sausage worth useful legal winner thank yellow' \\\n",stderr);
+  fputs("          | btct bip39.seed --passphrase=TREZOR \\\n", stderr);
+  fputs("          | btct bip32.masterkey\\\n", stderr);
+  fputs("          | btct bip85.bip39 --words=24 --index=100\n", stderr);
+  fputs("\n", stderr);
+}
+
+static  int
+_bip85_bip39_command(int argc, char **argv)
+{
+  int c;
+  uint32_t language = 0;
+  uint32_t word_cnt = 12;
+  uint32_t index = 0;
+
+  while (1)
+    {
+      int option_index = 0;
+      static struct option long_options[] = {
+        {"help",  no_argument, 0, 'h' },
+        {"language",  required_argument, 0, 'l' },
+        {"words",  required_argument, 0, 'w' },
+        {"index",  required_argument, 0, 'i' },
+        {0, 0, 0, 0}
+      };
+
+      c = getopt_long(argc, argv, "hl:w:i:", long_options, &option_index);
+      if (c == -1)
+        break;
+
+      switch (c) {
+      case 'h':
+        _bip85_bip39_command_usage();
+        return EXIT_FAILURE;
+
+      case 'l':
+        language = atoi(optarg);
+        break;
+
+      case 'w':
+        word_cnt = atoi(optarg);
+        break;
+
+      case 'i':
+        index = atoi(optarg);
+        break;
+      }
+    }
+
+  return _bip85_bip39(language, word_cnt, index);
+}
+
+static void _bip85_command_usage(void)
+{
+  fputs("usage: btct bip85.<command> <args>\n", stderr);
+  fputs("\n", stderr);
+  fputs("  bip39           Derive a deterministic mneonmic seed phrase.\n", stderr);
+  fputs("\n",stderr);
+  fputs("examples:\n", stderr);
+  fputs("\n",stderr);
+  fputs("  Derive a deterministics mnenomic seed phrase, english, 12 words:\n",stderr);
+  fputs("\n",stderr);
+  fputs("      echo 'legal winner thank year wave sausage worth useful legal winner thank yellow' \\\n", stderr);
+  fputs("        | btct bip39.seed --passphrase=TREZOR \\\n", stderr);
+  fputs("        | btct bip32.masterkey \\\n", stderr);
+  fputs("        | btct bip85.bip39 \n", stderr);
+  fputs("\n", stderr);
+}
+
+int bip85_command(int argc, char **argv)
+{
+  int res;
+
+  struct command_t commands[] = {
+    { "bip85.bip39", _bip85_bip39_command },
+    { NULL, NULL, }
+  };
+
+  res = command_dispatch(commands, argv[0], false, argc, argv);
+  if (res == -1)
+    _bip85_command_usage();
+
+  return (res != EXIT_SUCCESS ? EXIT_FAILURE : EXIT_SUCCESS);
+}
