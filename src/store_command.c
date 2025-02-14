@@ -89,14 +89,25 @@ _store_init(const char *filename, uint32_t bits)
  redo_prompt:
   char *tmp;
   _input("Enter the number of seed to use", true, buf, sizeof(buf));
-  long choice = atoi(buf);
-  if (choice == 0)
+  long choice = atoi(buf) - 1;
+  if (choice < 0 || choice >= PROPOSE_CNT)
     goto redo_prompt;
+
+  if (bip39_to_mnemonics(&bip39, seed[choice], bits, &mnemonics, &mnemonics_cnt) != 0)
+    return EXIT_FAILURE;
 
   // prompt for password
   _input("Enter password for store", false, password, sizeof(password));
 
-  if (store_write_seed(filename, password, seed[choice-1], (bits/8)) != 0)
+  // generate mnemonics string
+  memset(buf, 0, sizeof(buf));
+  for (size_t i = 0; i < mnemonics_cnt; i++) {
+    strcat(buf, mnemonics[i]);
+    if (i != mnemonics_cnt - 1)
+      strcat(buf, " ");
+  }
+
+  if (store_write_mnemonics(filename, password, buf, strlen(buf)) != 0)
   {
     fprintf(stderr, "failed to store into file %s\n", filename);
     return EXIT_FAILURE;
@@ -167,18 +178,18 @@ _store_init_command(int argc, char **argv)
 static int
 _store_read(const char *filename)
 {
-  char seed[256] = {0};
-  size_t size = sizeof(seed);
+  char mnemonics[2048] = {0};
+  size_t size = sizeof(mnemonics);
   char password[256]={0};
 
   // prompt for password
   _input("Enter password for store", false, password, sizeof(password));
 
-  if (store_read_seed(filename, password, seed, &size) != 0)
+  if (store_read_mnemonics(filename, password, mnemonics, &size) != 0)
     return EXIT_FAILURE;
 
-  fwrite(seed, size, 1, stdout);
-  
+  fputs(mnemonics, stdout);
+
   return EXIT_SUCCESS;
 }
 
