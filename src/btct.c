@@ -5,6 +5,7 @@
 
 #include "command.h"
 
+extern int (store_command)(int,char**);
 extern int (bip32_command)(int,char**);
 extern int (bip39_command)(int,char**);
 extern int (bip44_command)(int,char**);
@@ -12,6 +13,7 @@ extern int (bip85_command)(int,char**);
 extern int (sss_command)(int,char**);
 
 static command_t commands[] = {
+    { "store", store_command },
     { "bip32", bip32_command },
     { "bip39", bip39_command },
     { "bip44", bip44_command },
@@ -26,6 +28,8 @@ static void usage(void)
     fputs("               <module>[.<command>] [<args>]\n", stderr);
     fputs("\n", stderr);
     fputs("These are the BiTCoin Tools (btct) modules used for various operation:\n", stderr);
+    fputs("\n", stderr);
+    fputs("  store        Store of a password protected mnemonics seed phrase\n", stderr);
     fputs("\n", stderr);
     fputs("  bip32        Hierarchical Deterministic Wallets\n", stderr);
     fputs("\n", stderr);

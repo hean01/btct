@@ -21,6 +21,8 @@ libbtct_static = static_library('btct', library_sources,
 
 clitool_sources = [
   'command.c',
+  'store.c',
+  'store_command.c',
   'bip32_command.c',
   'bip39_command.c',
   'bip44_command.c',
