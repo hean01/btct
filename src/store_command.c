@@ -37,20 +37,27 @@ int _input(const char *prompt, bool echo, char *result, size_t size)
 }
 
 
+#define PROPOSE_CNT 5
+
 static int
-_store_init(const char *filename)
+_store_init(const char *filename, uint32_t bits)
 {
   bip32_key_t key;
   bip39_t bip39;
-  uint8_t seed[10][32] = {0};
+  uint8_t seed[PROPOSE_CNT][32] = {0};
   char buf[4096] = {0};
   char password[512] = {0};
   char **mnemonics;
   size_t mnemonics_cnt;
 
+  if (bits != 128 && bits != 256) {
+    fprintf(stderr, "store.init: Unsupported bit count %d, use 128 or 256bit\n", bits);
+    return EXIT_FAILURE;
+  }
+
   int h = open("/dev/urandom", O_RDONLY);
-  for (size_t i = 0; i < 10; i++)
-    read(h, seed[i], sizeof(seed) / 10);
+  for (size_t i = 0; i < PROPOSE_CNT; i++)
+    read(h, seed[i], (bits/8));
   close(h);
 
   bip39_init(&bip39);
@@ -60,10 +67,10 @@ _store_init(const char *filename)
         "\n"
         , stdout);
 
-  // Present 10 mnemonics to choose one of to use
-  for (size_t i = 0; i < 10; i++) {
+  // Present mnemonics for each seed generated to choose one of to use
+  for (size_t i = 0; i < PROPOSE_CNT; i++) {
     // generate mnemonics to save to store
-    if (bip39_to_mnemonics(&bip39, seed[i], (sizeof(seed) / 10) * 8, &mnemonics, &mnemonics_cnt) != 0)
+    if (bip39_to_mnemonics(&bip39, seed[i], bits, &mnemonics, &mnemonics_cnt) != 0)
       return EXIT_FAILURE;
 
     fprintf(stdout, " %2ld: " , 1+i);
@@ -89,7 +96,7 @@ _store_init(const char *filename)
   // prompt for password
   _input("Enter password for store", false, password, sizeof(password));
 
-  if (store_write_seed(filename, password, seed[choice-1], sizeof(seed[choice-1])) != 0)
+  if (store_write_seed(filename, password, seed[choice-1], (bits/8)) != 0)
   {
     fprintf(stderr, "failed to store into file %s\n", filename);
     return EXIT_FAILURE;
@@ -103,6 +110,8 @@ _store_init_command_usage(void)
 {
     fputs("usage: btct store.init <args>\n", stderr);
     fputs("\n", stderr);
+    fputs("  -b, --bits <count>      Specify bits of entropy, 128bits = 12 words, 256bits = 24 words. Default\n", stderr);
+    fputs("                          is 128bits entropy, which creates a 12 word mnemoninc seed phrase.\n", stderr);
     fputs("  -f, --file <filename>   Specify a file for the encrypted store with generated wallets.\n", stderr);
     fputs("                          Default store file is ~/btct_store.dat.\n", stderr);
     fputs("\n", stderr);
@@ -120,6 +129,7 @@ static int
 _store_init_command(int argc, char **argv)
 {
     int c;
+    uint32_t bits = 128;
     const char *filename = NULL;
 
     while (1)
@@ -127,11 +137,12 @@ _store_init_command(int argc, char **argv)
         int option_index = 0;
         static struct option long_options[] = {
             {"help",  no_argument, 0, 'h' },
+            {"bits",  no_argument, 0, 'b' },
             {"filename",  no_argument, 0, 'f' },
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "hf:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hf:b:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -143,10 +154,14 @@ _store_init_command(int argc, char **argv)
             case 'f':
                 filename = optarg;
                 break;
+
+            case 'b':
+              bits = atoi(optarg);
+              break;
         }
     }
 
-    return _store_init(filename);
+    return _store_init(filename, bits);
 }
 
 static int
@@ -159,10 +174,10 @@ _store_read(const char *filename)
   // prompt for password
   _input("Enter password for store", false, password, sizeof(password));
 
-  if (store_read_seed(filename, password, seed, size) != 0)
+  if (store_read_seed(filename, password, seed, &size) != 0)
     return EXIT_FAILURE;
 
-  fwrite(seed, 32, 1, stdout);
+  fwrite(seed, size, 1, stdout);
   
   return EXIT_SUCCESS;
 }

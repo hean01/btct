@@ -57,7 +57,7 @@ store_write_seed(const char *filename, const char *password, const uint8_t *seed
 }
 
 int store_read_seed(const char *filename, const char *password,
-                    uint8_t *seed, size_t size)
+                    uint8_t *seed, size_t *size)
 {
   uint8_t data[4096];
   char file[4096] = {0};
@@ -81,15 +81,15 @@ int store_read_seed(const char *filename, const char *password,
     return -1;
   }
 
-  bytes = read(in, data, 4096);
+  *size = read(in, data, 4096);
   close(in);
 
-  if (bytes == -1)
+  if (*size == -1)
     return -2;
 
   // decrypt using aes
   aes_set_decrypt_key(&aes, KEY_SIZE, key);
-  aes_decrypt(&aes, bytes, seed, data);
+  aes_decrypt(&aes, *size, seed, data);
 
   return 0;
 }
