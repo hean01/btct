@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <fcntl.h>
 #include "utils.h"
 
 void
@@ -70,5 +71,15 @@ utils_base85_encode(const uint8_t *data, size_t size, char *result)
     pdata += 4;
   }
 
+  return 0;
+}
+
+int
+utils_fill_random(uint8_t *out, size_t size)
+{
+  int h = open("/dev/urandom", O_RDONLY);
+  if (read(h, out, size) < size)
+    return -1;
+  close(h);
   return 0;
 }
