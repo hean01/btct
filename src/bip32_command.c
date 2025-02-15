@@ -7,7 +7,7 @@
 #include "bip32.h"
 
 static int
-_bip32_master_key(bool encode, bool wif)
+_bip32_masterkey(bool encode, bool wif)
 {
     uint8_t seed[128]={0};
     size_t bytes = 0;
@@ -43,7 +43,7 @@ _bip32_master_key(bool encode, bool wif)
 }
 
 static void
-_bip32_master_key_usage(void)
+_bip32_masterkey_usage(void)
 {
     fputs("usage: btct bip32.masterkey <args>\n", stderr);
     fputs("\n", stderr);
@@ -61,7 +61,7 @@ _bip32_master_key_usage(void)
 }
 
 static int
-_bip32_master_key_command(int argc, char **argv)
+_bip32_masterkey_command(int argc, char **argv)
 {
     int c;
     bool encode = true;
@@ -82,7 +82,7 @@ _bip32_master_key_command(int argc, char **argv)
 
         switch (c) {
             case 'h':
-                _bip32_master_key_usage();
+                _bip32_masterkey_usage();
                 return EXIT_FAILURE;
 
             case 'p':
@@ -95,7 +95,7 @@ _bip32_master_key_command(int argc, char **argv)
         }
     }
 
-    return _bip32_master_key(encode, wif);
+    return _bip32_masterkey(encode, wif);
 }
 
 static int
@@ -273,7 +273,7 @@ static void _bip32_command_usage(void)
 {
     fputs("usage: btct bip32.<command> <args>\n", stderr);
     fputs("\n", stderr);
-    fputs("  master_key       Generate hierarchical deterministic master key\n", stderr);
+    fputs("  masterkey        Generate hierarchical deterministic master key\n", stderr);
     fputs("  pubkey           Generate public key for private key in encoded format\n", stderr);
     fputs("                   read from stdin.\n", stderr);
     fputs("  derive           Derive a key from specified derivation path\n", stderr);
@@ -293,7 +293,7 @@ int bip32_command(int argc, char **argv)
     int res;
 
     struct command_t commands[] = {
-        { "bip32.masterkey", _bip32_master_key_command },
+        { "bip32.masterkey", _bip32_masterkey_command },
         { "bip32.pubkey", _bip32_pubkey_command },
         { "bip32.derive", _bip32_derive_command },
         { NULL, NULL, }
