@@ -14,7 +14,7 @@
 static
 int _input(const char *prompt, bool echo, char *result, size_t size)
 {
-  int res;
+  char *res;
   struct termios term;
 
   if (!echo) {
@@ -23,17 +23,20 @@ int _input(const char *prompt, bool echo, char *result, size_t size)
     tcsetattr(fileno(stdin), 0, &term); 
   }
 
+  freopen(NULL, "rt", stdin);
   fprintf(stderr, "%s: ", prompt);
-  freopen(NULL, "rb", stdin);
-  
   res = fgets(result, size, stdin);
+
   if (!echo) {
     term.c_lflag |= ECHO;
     tcsetattr(fileno(stdin), 0, &term);
     fputs("\n", stderr);
   }
 
-  return res;
+  if (res == NULL)
+    return -1;
+
+  return 0;
 }
 
 
@@ -243,21 +246,89 @@ _store_read_command(int argc, char **argv)
     return _store_read(filename);
 }
 
+static int
+_store_import(const char *filename)
+{
+  char password[256]={0};
+  uint8_t mnemonics[4096] = {0};
+
+  // prompt for mnemonics
+  _input("Enter mnemonics seed phrase", true, mnemonics, sizeof(mnemonics));
+
+  // prompt for password
+  _input("Enter password for store", false, password, sizeof(password));
+
+  // write seed to store
+  if (store_write_mnemonics(filename, password, mnemonics, strlen(mnemonics)) != 0)
+  {
+    fprintf(stderr, "failed to store into file %s\n", filename);
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+static void
+_store_import_command_usage(void)
+{
+    fputs("usage: btct store.import <args>\n", stderr);
+    fputs("\n", stderr);
+    fputs("Import a mnemonic seed phrase into the store instead of generating a new one as when\n", stderr);
+    fputs("using `store.init`, any 12, 24 words seed phrase can be used, for now english words\n", stderr);
+    fputs("are required.\n", stderr);
+    fputs("\n", stderr);
+    fputs("  -f, --file <filename>   Specify a file for the encrypted store to read from.\n", stderr);
+    fputs("                          Default store file is ~/.btct.dat.\n", stderr);
+    fputs("\n", stderr);
+}
+
+static int
+_store_import_command(int argc, char **argv)
+{
+    int c;
+    const char *filename = NULL;
+
+    while (1)
+    {
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"help",  no_argument, 0, 'h' },
+            {"filename",  no_argument, 0, 'f' },
+            {0, 0, 0, 0}
+        };
+
+        c = getopt_long(argc, argv, "hf:", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch (c) {
+            case 'h':
+                _store_import_command_usage();
+                return EXIT_FAILURE;
+
+            case 'f':
+                filename = optarg;
+                break;
+        }
+    }
+
+    return _store_import(filename);
+}
+
 
 static void _store_command_usage(void)
 {
     fputs("usage: btct store.<command> <args>\n", stderr);
     fputs("\n", stderr);
-    fputs("  init            Initialize a new store, default ~/btct.dat\n", stderr);
-    fputs("  read            Read mnemonics stored in file, default ~/btct.dat\n", stderr);
+    fputs("  init            Initialize store with new generated mnemonics seed phrase.\n", stderr);
+    fputs("  import          Import an existing seed phrase into store.\n", stderr);
+    fputs("  read            Read mnemonics sede phrase from store.\n", stderr);
     fputs("\n",stderr);
     fputs("examples:\n", stderr);
     fputs("\n",stderr);
-    fputs("  Generate a new store with a new seed:\n",stderr);
+    fputs("  Initialize store with a newly generate seed phrase:\n",stderr);
     fputs("\n",stderr);
-    fputs("      head -c32 /dev/urandom \\\n", stderr);
-    fputs("          | btct bip39.mnemonics --sentence \\\n", stderr);
-    fputs("          | btct store.init", stderr);
+    fputs("          btct store.init\n", stderr);
     fputs("\n", stderr);
 }
 
@@ -268,6 +339,7 @@ int store_command(int argc, char **argv)
     struct command_t commands[] = {
         { "store.init", _store_init_command },
         { "store.read", _store_read_command },
+        { "store.import", _store_import_command },
         { NULL, NULL, }
     };
 

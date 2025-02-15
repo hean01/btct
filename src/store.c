@@ -27,7 +27,7 @@ static uint16_t
 _lookup_mnemonic_index(const char *mnemonic)
 {
   char *pend = mnemonic;
-  while (*pend != ' ' && *pend != '\0')
+  while (*pend != ' ' && *pend != '\0' && *pend != '\n')
     pend++;
 
   for (size_t i = 0; i < 2047; i++) {
@@ -45,7 +45,8 @@ _mnemonics_to_data(const char *mnemonics, uint8_t *out)
   char *ps = mnemonics;
 
   while (1) {
-    utils_out_u16_be(pout, _lookup_mnemonic_index(ps));
+    uint16_t idx =  _lookup_mnemonic_index(ps);
+    utils_out_u16_be(pout, idx);
     if ( pout[0] == 0xff && pout[1] == 0xff)
       return -1;
 
