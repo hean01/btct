@@ -38,4 +38,5 @@ void utils_hexdump(uint8_t *data, size_t size, FILE *out);
 int utils_fill_random(uint8_t *out, size_t size);
 
 int utils_base85_encode(const uint8_t *data, size_t size, char *result);
+int utils_to_hex_string(const uint8_t *data, size_t size, char *result);
 #endif

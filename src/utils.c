@@ -30,6 +30,18 @@ utils_hexdump(uint8_t *data, size_t size, FILE *out) {
 }
 
 int
+utils_to_hex_string(const uint8_t *data, size_t size, char *result)
+{
+  char buf[16];
+  result[0] = '\0';
+  for (size_t i = 0; i < size; i++) {
+    sprintf(buf, "%.2x", data[i]);
+    strcat(result, buf);
+  }
+  return 0;
+}
+
+int
 utils_base85_encode(const uint8_t *data, size_t size, char *result)
 {
   // Using rfc1925 variant
