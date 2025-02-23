@@ -351,42 +351,42 @@ spec("bip32") {
     describe("when creating identifier from private key") {
       static bip32_key_identifier_t ident;
       it("then should return non error")
-        check(bip32_key_identifier_init_from_key(&ident, &private_key) == 0);
+        check(bip32_key_identifier_init_from_key(ident, &private_key) == 0);
 
       describe("and generating a fingerprint") {
-        static uint32_t fingerprint;
+        static uint8_t fingerprint[4];
         static int result;
 
         before() {
-          result = bip32_key_identifier_fingerprint(&ident, &fingerprint);
+          result = bip32_key_identifier_fingerprint(ident, fingerprint);
         }
 
         it("then should not return error")
           check_number(result, 0);
 
         it("then should generate expected fingerprint")
-          check_number_hex(fingerprint, 0xb8688df1);
+          check(memcmp(fingerprint, (uint8_t[]){0xb8, 0x68, 0x8d, 0xf1}, 4) == 0);
       }
     }
 
     describe("when creating identifier from public key") {
       static bip32_key_identifier_t ident;
       it("then should not return error")
-        check(bip32_key_identifier_init_from_key(&ident, &public_key) == 0);
+        check(bip32_key_identifier_init_from_key(ident, &public_key) == 0);
 
       describe("and generating a fingerprint") {
-        static uint32_t fingerprint;
+        static uint8_t fingerprint[4];
         static int result;
 
         before() {
-          result = bip32_key_identifier_fingerprint(&ident, &fingerprint);
+          result = bip32_key_identifier_fingerprint(ident, fingerprint);
         }
 
         it("then should not return error")
           check_number(result, 0);
 
         it("then should generate expected fingerprint")
-          check_number_hex(fingerprint, 0xb8688df1);
+          check(memcmp(fingerprint, (uint8_t[]){0xb8, 0x68, 0x8d, 0xf1}, 4) == 0);
       }
     }
 
@@ -396,7 +396,7 @@ spec("bip32") {
       static int result;
 
       it("then should not return error")
-        check(bip32_key_identifier_init_from_key(&ident, &public_key) == 0);
+        check(bip32_key_identifier_init_from_key(ident, &public_key) == 0);
     }
   }
 }

@@ -175,12 +175,11 @@ bip32_key_derive_child_key(const bip32_key_t *parent, uint32_t index, bip32_key_
   child->index = index;
 
   bip32_key_identifier_t parent_key_ident;
-  uint32_t parent_fingerprint;
-  if (bip32_key_identifier_init_from_key(&parent_key_ident, parent) != 0)
+  uint8_t parent_fingerprint[4];
+  if (bip32_key_identifier_init_from_key(parent_key_ident, parent) != 0)
     return -2;
-  if (bip32_key_identifier_fingerprint(&parent_key_ident, &parent_fingerprint) != 0)
+  if (bip32_key_identifier_fingerprint(parent_key_ident, child->parent_fingerprint) != 0)
     return -3;
-  utils_out_u32_be(child->parent_fingerprint, parent_fingerprint);
 
   return 0;
 }
@@ -395,7 +394,7 @@ bip32_key_to_wif(bip32_key_t *ctx, uint8_t *result, size_t *size)
 
 
 int
-bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_key_t *key)
+bip32_key_identifier_init_from_key(bip32_key_identifier_t ident, const bip32_key_t *key)
 {
   bip32_key_t public_key;
 
@@ -425,17 +424,14 @@ bip32_key_identifier_init_from_key(bip32_key_identifier_t *ident, const bip32_ke
   struct ripemd160_ctx ripemd160;
   ripemd160_init(&ripemd160);
   ripemd160_update(&ripemd160, sizeof(hashed), hashed);
-  ripemd160_digest(&ripemd160, sizeof(bip32_key_identifier_t), *ident);
+  ripemd160_digest(&ripemd160, sizeof(bip32_key_identifier_t), ident);
 
   return 0;
 }
 
 int
-bip32_key_identifier_fingerprint(const bip32_key_identifier_t *ident, uint32_t *fingerprint)
+bip32_key_identifier_fingerprint(const bip32_key_identifier_t ident, uint8_t *fingerprint)
 {
-  *fingerprint = utils_in_u32_be(*ident);
-  if (*fingerprint == 0)
-    return -1;
-
+  memcpy(fingerprint, ident, 4);
   return 0;
 }
