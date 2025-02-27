@@ -39,4 +39,9 @@ int utils_fill_random(uint8_t *out, size_t size);
 
 int utils_base85_encode(const uint8_t *data, size_t size, char *result);
 int utils_to_hex_string(const uint8_t *data, size_t size, char *result);
+
+/** SHA256(SHA256(x))[0:3] */
+int utils_sha256_sha256_checksum(const uint8_t *data, size_t size, uint8_t *checksum);
+/** RIPEMD160(SHA256(x)) */
+int utils_hash160(const uint8_t *data, size_t size, uint8_t *out);
 #endif

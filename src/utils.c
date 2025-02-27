@@ -1,5 +1,8 @@
 #include <ctype.h>
 #include <fcntl.h>
+#include <nettle/sha2.h>
+#include <nettle/ripemd160.h>
+
 #include "utils.h"
 
 void
@@ -93,5 +96,38 @@ utils_fill_random(uint8_t *out, size_t size)
   if (read(h, out, size) < size)
     return -1;
   close(h);
+  return 0;
+}
+
+int
+utils_sha256_checksum(const uint8_t *data, size_t size, uint8_t *checksum)
+{
+  struct sha256_ctx sha256;
+  uint8_t hashed[SHA256_DIGEST_SIZE] = {0};
+  sha256_init(&sha256);
+  sha256_update(&sha256, size, data);
+  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed);
+  sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed);
+  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed);
+
+  memcpy(checksum, hashed, 4);
+  return 0;
+}
+
+int
+utils_hash160(const uint8_t *data, size_t size, uint8_t *out)
+{
+  struct sha256_ctx sha256;
+  struct ripemd160_ctx ripemd160;
+  uint8_t hashed[SHA256_DIGEST_SIZE] = {0};
+
+  sha256_init(&sha256);
+  sha256_update(&sha256, size, data);
+  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed);
+
+  ripemd160_init(&ripemd160);
+  ripemd160_update(&ripemd160, sizeof(hashed), hashed);
+  ripemd160_digest(&ripemd160, RIPEMD160_DIGEST_SIZE, out);
+
   return 0;
 }
