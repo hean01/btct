@@ -225,16 +225,14 @@ static inline int
 _base58_checksum_encode(uint8_t *data, size_t size,
                         uint8_t *result, size_t *result_size)
 {
-    uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
-    struct sha256_ctx sha256;
-    sha256_init(&sha256);
-    sha256_update(&sha256, size, data);
-    sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-    sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-    sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
+    uint8_t checksum[4];
 
-    memcpy(data + size, hashed_xprv, 4);
-    return b58enc((char*)result, result_size, data, size + 4) ? 0 : -1;
+    if (utils_sha256_checksum(data, size, checksum) != 0)
+      return -1;
+
+    memcpy(data + size, checksum, 4);
+
+    return b58enc((char*)result, result_size, data, size + 4) ? 0 : -2;
 }
 
 int
@@ -292,9 +290,8 @@ static inline int
 _base58_checksum_decode(const char *data, size_t size,
                        uint8_t *result, size_t *result_size)
 {
-  uint8_t hashed_xprv[SHA256_DIGEST_SIZE];
-  struct sha256_ctx sha256;
   uint8_t checksum[4];
+  uint8_t calculated_checksum[4];
 
   if (b58tobin(result, result_size, data, size) == false)
     return -1;
@@ -302,14 +299,11 @@ _base58_checksum_decode(const char *data, size_t size,
   memcpy(checksum, result + (*result_size - 4), 4);
   *result_size -= 4;
 
-  sha256_init(&sha256);
-  sha256_update(&sha256, *result_size, result);
-  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-  sha256_update(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed_xprv);
-
-  if (memcmp(checksum, hashed_xprv, 4) != 0)
+  if (utils_sha256_checksum(result, *result_size, calculated_checksum) != 0)
     return -2;
+
+  if (memcmp(checksum, calculated_checksum, 4) != 0)
+    return -3;
 
   return 0;
 }
