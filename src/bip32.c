@@ -407,18 +407,8 @@ bip32_key_identifier_init_from_key(bip32_key_identifier_t ident, const bip32_key
   if (_bip32_key_secp256k1_serialize_pubkey(&public_key, serialized_public_key) != 0)
         return -2;
 
-  // sha256 of serialized public key
-  uint8_t hashed[SHA256_DIGEST_SIZE];
-  struct sha256_ctx sha256;
-  sha256_init(&sha256);
-  sha256_update(&sha256, 33, serialized_public_key);
-  sha256_digest(&sha256, SHA256_DIGEST_SIZE, hashed);
-
-  // ripemd160 of result into ident
-  struct ripemd160_ctx ripemd160;
-  ripemd160_init(&ripemd160);
-  ripemd160_update(&ripemd160, sizeof(hashed), hashed);
-  ripemd160_digest(&ripemd160, sizeof(bip32_key_identifier_t), ident);
+  if (utils_hash160(serialized_public_key, sizeof(serialized_public_key), ident) != 0)
+    return -3;
 
   return 0;
 }
