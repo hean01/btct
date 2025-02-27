@@ -26,6 +26,7 @@ int bip32_key_init_public_from_private_key(bip32_key_t *ctx, const bip32_key_t *
 int bip32_key_p2pkh_address_from_key(const bip32_key_t *ctx, uint8_t *address, size_t *size);
 int bip32_key_derive_child_key(const bip32_key_t *parent, uint32_t index, bip32_key_t *child);
 int bip32_key_derive_child_by_path(const bip32_key_t *ctx, const char *path, bip32_key_t *child);
+int bip32_key_secp256k1_serialize_public_key(const bip32_key_t *ctx, bool compressed, uint8_t *result);
 int bip32_key_serialize(bip32_key_t *ctx, bool encoded,
 			uint8_t *result, size_t *size);
 int bip32_key_deserialize(bip32_key_t *ctx, const char *encoded_key);

@@ -27,18 +27,18 @@ _bip32_key_init(bip32_key_t *ctx, uint8_t *secret, uint8_t *chain,
     return 0;
 }
 
-static int
-_bip32_key_secp256k1_serialize_pubkey(const bip32_key_t *ctx, uint8_t *result)
+int
+bip32_key_secp256k1_serialize_public_key(const bip32_key_t *ctx, bool compressed, uint8_t *result)
 {
   struct secp256k1_context *secp256k1;
-  size_t pubkey_size = 33;
+  size_t pubkey_size = compressed ? 33 : 65;
 
   if (ctx->public == false)
     return -1;
 
   secp256k1 = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
   secp256k1_context_randomize(secp256k1, 0);
-  secp256k1_ec_pubkey_serialize(secp256k1, result, &pubkey_size, &ctx->key.public, SECP256K1_EC_COMPRESSED);
+  secp256k1_ec_pubkey_serialize(secp256k1, result, &pubkey_size, &ctx->key.public, compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED);
   secp256k1_context_destroy(secp256k1);
 
   return 0;
@@ -139,7 +139,7 @@ bip32_key_derive_child_key(const bip32_key_t *parent, uint32_t index, bip32_key_
     bip32_key_t parent_public_key;
     bip32_key_init_public_from_private_key(&parent_public_key, parent);
 
-    if (_bip32_key_secp256k1_serialize_pubkey(&parent_public_key, ptmp) != 0)
+    if (bip32_key_secp256k1_serialize_public_key(&parent_public_key, true, ptmp) != 0)
       return -2;
     ptmp += 33;
 
@@ -267,7 +267,7 @@ bip32_key_serialize(bip32_key_t *ctx, bool encoded,
     }
     else
     {
-      if (_bip32_key_secp256k1_serialize_pubkey(ctx, ptr) != 0)
+      if (bip32_key_secp256k1_serialize_public_key(ctx, true, ptr) != 0)
         return -1;
       ptr += 33;
     }
@@ -404,7 +404,7 @@ bip32_key_identifier_init_from_key(bip32_key_identifier_t ident, const bip32_key
 
   // serialize public key
   uint8_t serialized_public_key[33];
-  if (_bip32_key_secp256k1_serialize_pubkey(&public_key, serialized_public_key) != 0)
+  if (bip32_key_secp256k1_serialize_public_key(&public_key, true, serialized_public_key) != 0)
         return -2;
 
   if (utils_hash160(serialized_public_key, sizeof(serialized_public_key), ident) != 0)
@@ -438,7 +438,7 @@ bip32_key_p2pkh_address_from_key(const bip32_key_t *ctx, uint8_t *address, size_
 
   // serialize uncompressed public key
   uint8_t serialized_public_key[33]={0};
-  if (_bip32_key_secp256k1_serialize_pubkey(public_key, serialized_public_key) != 0)
+  if (bip32_key_secp256k1_serialize_public_key(public_key, true, serialized_public_key) != 0)
     return -2;
 
   if (utils_hash160(serialized_public_key, sizeof(serialized_public_key), buf + 1) != 0)
