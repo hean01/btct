@@ -399,4 +399,45 @@ spec("bip32") {
         check(bip32_key_identifier_init_from_key(ident, &public_key) == 0);
     }
   }
+
+  context("public key address") {
+    static bip32_key_t private_key;
+    static bip32_key_t public_key;
+    static int result = -1;
+
+    before() {
+      bip32_key_init_from_entropy(&private_key, vectors[0].seed, sizeof(vectors[0].seed));
+      bip32_key_init_public_from_private_key(&public_key, &private_key);
+    }
+
+    describe("when creating p2pkh (legacy) address from private key") {
+      static char buf[256];
+      static size_t size;
+      before() {
+        size = sizeof(buf);
+        result = bip32_key_p2pkh_address_from_key(&private_key, buf, &size);
+      }
+
+      it ("then should not return error code")
+        check_number(result, 0);
+
+      it ("then should generate expected 1Hp4...x6NB address")
+        check_str(buf, vectors[0].p2pkh_legacy_address);
+    }
+
+    describe("when creating p2pkh (legacy) address from public key") {
+      static char buf[256];
+      static size_t size;
+      before() {
+        size = sizeof(buf);
+        result = bip32_key_p2pkh_address_from_key(&public_key, buf, &size);
+      }
+
+      it ("then should not return error code")
+        check_number(result, 0);
+
+      it ("then should generate expected 1Hp4...x6NB address")
+        check_str(buf, vectors[0].p2pkh_legacy_address);
+    }
+  }
 }

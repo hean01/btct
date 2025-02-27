@@ -419,3 +419,35 @@ bip32_key_identifier_fingerprint(const bip32_key_identifier_t ident, uint8_t *fi
   memcpy(fingerprint, ident, 4);
   return 0;
 }
+
+int
+bip32_key_p2pkh_address_from_key(const bip32_key_t *ctx, uint8_t *address, size_t *size)
+{
+  uint8_t buf[256] = {0};
+  bip32_key_t *public_key, tmp;
+
+  public_key = ctx;
+
+  // derive public key if private
+  if (ctx->public == false)
+  {
+    if (bip32_key_init_public_from_private_key(&tmp, ctx) != 0)
+      return -1;
+    public_key = &tmp;
+  }
+
+  // serialize uncompressed public key
+  uint8_t serialized_public_key[33]={0};
+  if (_bip32_key_secp256k1_serialize_pubkey(public_key, serialized_public_key) != 0)
+    return -2;
+
+  if (utils_hash160(serialized_public_key, sizeof(serialized_public_key), buf + 1) != 0)
+    return -3;
+
+  // calculate checksum of extended key version:<pubkey>
+  buf[0] = 0x00;
+  if (utils_sha256_checksum(buf, 1 + RIPEMD160_DIGEST_SIZE, buf + 1 + RIPEMD160_DIGEST_SIZE) != 0)
+    return -4;
+
+  return b58enc((char*)address, size, buf, 1 + RIPEMD160_DIGEST_SIZE + 4) ? 0 : -5;
+}

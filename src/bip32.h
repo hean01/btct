@@ -23,6 +23,7 @@ typedef struct bip32_key_t {
 int bip32_key_init_private(bip32_key_t *ctx);
 int bip32_key_init_from_entropy(bip32_key_t *bip32_key_ctx, uint8_t *entropy, size_t size);
 int bip32_key_init_public_from_private_key(bip32_key_t *ctx, const bip32_key_t *private);
+int bip32_key_p2pkh_address_from_key(const bip32_key_t *ctx, uint8_t *address, size_t *size);
 int bip32_key_derive_child_key(const bip32_key_t *parent, uint32_t index, bip32_key_t *child);
 int bip32_key_derive_child_by_path(const bip32_key_t *ctx, const char *path, bip32_key_t *child);
 int bip32_key_serialize(bip32_key_t *ctx, bool encoded,

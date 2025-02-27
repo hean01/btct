@@ -7,6 +7,7 @@ typedef struct test_vector_t {
   uint8_t privkey[64];
   char *masterkey;
   char *publickey;
+  char *p2pkh_legacy_address;
 } test_vector_t;
 
 static test_vector_t vectors[] = {
@@ -28,6 +29,7 @@ static test_vector_t vectors[] = {
     },
     .masterkey = "xprv9s21ZrQH143K2x4gnzRB1eZDq92Uuvy9CXbvgQGdvykXZ9mkkot6LBjzDpgaAfvzkuxJe9JKJXQ38VoPutxvACA5MsyoBs5UyQ4HZKGshGs",
     .publickey = "xpub661MyMwAqRbcFS99u1xBNnVxPAryKPgzZkXXUngFVKHWRx6uJMCLsz4U56FN7PxTSeVqL8tPJpiCrs1KZh1dV2Bh6QyAbmNmjFRPnkrZP52",
+    .p2pkh_legacy_address ="1Hp4asPpCYUURPBRHjHFeYmSpicwzcx6NB",
   },
 
   {
