@@ -303,11 +303,11 @@ _bip32_describe(bool show_private)
       pkey = &public_key;
 
       bytes = sizeof(encoded_key);
-      if (bip32_key_serialize(pkey, true, encoded_key, &bytes) != 0)
+      if (bip32_key_serialize(pkey, true, (uint8_t *)encoded_key, &bytes) != 0)
         return EXIT_FAILURE;
     }
 
-    bip32_key_identifier_init_from_key(identifier, &pkey);
+    bip32_key_identifier_init_from_key(identifier, pkey);
     bip32_key_identifier_fingerprint(identifier, fingerprint);
 
     fputs( pkey->public ? "\n" : "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", stdout);
